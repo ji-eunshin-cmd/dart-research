@@ -46,7 +46,9 @@ DOC_XML = """<?xml version="1.0" encoding="utf-8"?>
 </BODY></DOCUMENT>"""
 
 AUDIT_XML = """<?xml version="1.0" encoding="utf-8"?><DOCUMENT><BODY><SECTION-1><TITLE>감사보고서</TITLE>
-<P>독립된 감사인의 감사보고서</P><P>주석</P><P>1. 일반사항</P><P>주식회사 라마바(이하 회사)는 2015년 설립되어 부산에서 플라스틱 사출품을 제조합니다.</P>
+<P>독립된 감사인의 감사보고서</P><P>회사의 개요를 포함한 재무제표에 대해 감사하였습니다.</P><P>주석</P><P>1. 일반사항</P><P>주식회사 라마바(이하 회사)는 2015년 설립되어 부산에서 플라스틱 사출품을 제조합니다.</P>
+<TABLE><TR><TD>주주명</TD><TD>주식수</TD><TD>지분율(%)</TD></TR><TR><TD>이가상</TD><TD>100,000</TD><TD>100.0</TD></TR></TABLE>
+<P>2. 재무제표의 작성기준</P><P>회사는 한국채택국제회계기준에 따라 재무제표를 작성하였습니다.</P><P>3. 유의적인 회계정책</P>
 </SECTION-1></BODY></DOCUMENT>"""
 
 
@@ -136,7 +138,7 @@ def call(c, tool, args):
 def test_wrong_secret_is_404(http):
     r = http.post("/wrong/mcp", headers=H, json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
     assert r.status_code == 404
-    assert http.get("/health").json() == {"ok": True}
+    assert http.get("/health").json()["ok"] is True
 
 
 def test_tools_listed_read_only(http):
@@ -180,8 +182,17 @@ def test_bundle_annual_report(http):
 def test_bundle_audit_only_company(http):
     b = call(http, "research_bundle", {"corp_code": "00333333"})["structuredContent"]
     assert b["report"]["kind"] == "audit" and b["sources"][1]["title"] == "2025 감사보고서"
-    assert "플라스틱 사출품" in b["materials"][1]["text"]
+    t = b["materials"][1]["text"]
+    assert "플라스틱 사출품" in t and "이가상 | 100,000 | 100.0" in t
+    assert "작성기준" not in t and "유의적인 회계정책" not in t and "감사하였습니다" not in t
     assert any("감사보고서만" in n for n in b["notes"])
+
+
+def test_industry_section_kept_under_tight_budget(http):
+    b = call(http, "research_bundle", {"corp_code": "00123456", "max_chars": 5000})["structuredContent"]
+    t = b["materials"][1]["text"]
+    assert "## 기타 참고사항 (산업·시장)" in t and "## 사업의 개요" in t
+    assert t.index("## 회사의 개요") < t.index("## 사업의 개요") < t.index("## 기타 참고사항")  # 문서 순서 유지
 
 
 def test_errors_are_tool_errors(http):

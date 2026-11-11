@@ -73,7 +73,7 @@ class DartClient:
         self.http = http or httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
         self._corps: list[Corp] | None = None
         self._corps_at = 0.0
-        self._lock = asyncio.Lock()
+        self._refresh: asyncio.Task | None = None
         self._json_cache: dict[str, tuple[float, Any]] = {}
 
     # ------------------------------------------------------------ 저수준
@@ -115,28 +115,57 @@ class DartClient:
         raise DartError("DART가 예상과 다른 응답을 보냈습니다.")
 
     # ------------------------------------------------------------ 회사 목록
-    async def corps(self) -> list[Corp]:
-        async with self._lock:
-            if self._corps is not None and time.time() - self._corps_at < 86400:
-                return self._corps
+    # DART 전체 회사 목록(수 MB)은 해외 서버에서 받는 데 몇 분 걸릴 수 있어서, 사용자를 기다리게 하지 않도록
+    # 백그라운드로 받습니다. 하루 지난 목록도 새 목록이 올 때까지는 그대로 씁니다.
+    @staticmethod
+    def _parse_corps(content: bytes) -> list[Corp]:
+        with zipfile.ZipFile(io.BytesIO(content)) as z:
+            xml = z.read(z.namelist()[0])
+        root = etree.fromstring(xml, etree.XMLParser(recover=True, huge_tree=True))
+        return [Corp((el.findtext("corp_code") or "").strip(), (el.findtext("corp_name") or "").strip(),
+                     (el.findtext("stock_code") or "").strip()) for el in root.iter("list")]
+
+    async def _download_corps(self) -> None:
+        f = self.cache / "corpcode.zip"
+        try:
+            r = await self.http.get(f"{BASE}/corpCode.xml", params={"crtfc_key": self.key},
+                                    timeout=httpx.Timeout(600.0, connect=15.0))
+            content = r.content
+            if r.status_code != 200 or not content.startswith(b"PK"):
+                self._zip_error(content)
+            corps = self._parse_corps(content)
+            f.write_bytes(content)
+            self._corps, self._corps_at = corps, time.time()
+            print(f"[DART] 회사 목록 {len(corps):,}곳 받음", flush=True)
+        except Exception as e:  # 다음 요청 때 다시 시도
+            print(f"[DART] 회사 목록 받기 실패: {e}", flush=True)
+            raise
+
+    def warm(self) -> None:
+        """회사 목록이 없거나 하루 지났으면 백그라운드로 받기 시작 (기다리지 않음)."""
+        if self._corps is None:
             f = self.cache / "corpcode.zip"
-            if f.exists() and time.time() - f.stat().st_mtime < 86400:
-                content = f.read_bytes()
-            else:
-                content = (await self._get("corpCode.xml")).content
-                if not content.startswith(b"PK"):
-                    self._zip_error(content)
-                f.write_bytes(content)
-            with zipfile.ZipFile(io.BytesIO(content)) as z:
-                xml = z.read(z.namelist()[0])
-            root = etree.fromstring(xml, etree.XMLParser(recover=True, huge_tree=True))
-            out = []
-            for el in root.iter("list"):
-                out.append(Corp((el.findtext("corp_code") or "").strip(),
-                                (el.findtext("corp_name") or "").strip(),
-                                (el.findtext("stock_code") or "").strip()))
-            self._corps, self._corps_at = out, time.time()
-            return out
+            if f.exists():
+                try:
+                    self._corps, self._corps_at = self._parse_corps(f.read_bytes()), f.stat().st_mtime
+                except Exception:
+                    pass
+        fresh = self._corps is not None and time.time() - self._corps_at < 86400
+        if not fresh and (self._refresh is None or self._refresh.done()):
+            self._refresh = asyncio.get_running_loop().create_task(self._download_corps())
+            self._refresh.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+
+    async def corps(self) -> list[Corp]:
+        self.warm()
+        if self._corps is not None:
+            return self._corps
+        try:  # 처음 한 번은 잠깐 기다려 봄
+            await asyncio.wait_for(asyncio.shield(self._refresh), timeout=90)
+        except asyncio.TimeoutError:
+            raise DartError("DART 회사 목록을 처음 받는 중입니다(서버 시작 후 한 번, 몇 분 걸림). 1~2분 뒤 다시 찾아 주세요.")
+        except Exception as e:
+            raise DartError(f"DART 회사 목록을 받지 못했습니다: {e}") from e
+        return self._corps or []
 
     async def search(self, name: str, limit: int = 10) -> list[Corp]:
         q = norm_name(name)

@@ -140,6 +140,8 @@ async def research_bundle(corp_code: str, max_chars: int = 30000) -> dict:
             for r in rows:
                 if "보통" not in (r.get("stock_knd") or "보통"):
                     continue
+                if r.get("nm") != "계" and (_num(r.get("trmend_posesn_stock_co")) or 0) == 0:
+                    continue  # 보유 주식이 없는 특수관계인은 생략
                 lines.append(f"{r.get('nm', '')} | {r.get('relate', '') or '-'} | {r.get('trmend_posesn_stock_co', '')}주 | {r.get('trmend_posesn_stock_qota_rt', '')}%")
             if lines:
                 parts.append(f"## 최대주주 및 특수관계인 (보통주, {fy}년말)\n성명 | 관계 | 주식수 | 지분율\n" + "\n".join(lines))
@@ -172,7 +174,14 @@ async def research_bundle(corp_code: str, max_chars: int = 30000) -> dict:
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(_: Request) -> JSONResponse:
-    return JSONResponse({"ok": True})
+    # Railway 헬스체크가 배포 직후 부르므로, 여기서 DART 회사 목록을 미리 받기 시작합니다.
+    try:
+        c = client()
+        c.warm()
+        ready = c._corps is not None
+    except Exception:
+        ready = False
+    return JSONResponse({"ok": True, "company_list_ready": ready})
 
 
 app = mcp.streamable_http_app()
