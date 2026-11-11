@@ -1,8 +1,9 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
-    "startCommand": "uvicorn server:app --host 0.0.0.0 --port $PORT --proxy-headers",
+    "startCommand": "python server.py",
     "healthcheckPath": "/health",
+    "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE"
   }
 }

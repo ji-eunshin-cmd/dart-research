@@ -28,7 +28,7 @@ from sections import parse, pick_annual, pick_audit
 
 SECRET = os.environ.get("CONNECTOR_SECRET", "")
 if len(SECRET) < 24 or not re.fullmatch(r"[A-Za-z0-9_-]+", SECRET):
-    raise SystemExit("CONNECTOR_SECRET 환경변수에 영문·숫자 24자 이상을 넣어 주세요.")
+    raise SystemExit(f"[시작 실패] CONNECTOR_SECRET 환경변수에 영문·숫자·_- 24자 이상을 넣어 주세요. (현재 {len(SECRET)}자)")
 
 mcp = FastMCP(
     "DART Research",
@@ -179,4 +179,6 @@ app = mcp.streamable_http_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
+    port = int(os.environ.get("PORT", "8000"))
+    print(f"DART Research 시작: 0.0.0.0:{port} (MCP 경로 /<CONNECTOR_SECRET>/mcp, 키 {'있음' if os.environ.get('DART_API_KEY') else '없음'})", flush=True)
+    uvicorn.run(app, host="0.0.0.0", port=port, proxy_headers=True, forwarded_allow_ips="*")
