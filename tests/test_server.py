@@ -101,6 +101,40 @@ def handler(req: httpx.Request) -> httpx.Response:
             {"fs_div": "OFS", "account_nm": "매출액", "thstrm_amount": "1", "frmtrm_amount": "1", "bfefrmtrm_amount": "1"},
             {"fs_div": "CFS", "account_nm": "매출액", "thstrm_amount": "123,400,000,000", "frmtrm_amount": "110,000,000,000", "bfefrmtrm_amount": "95,000,000,000"},
             {"fs_div": "CFS", "account_nm": "영업이익", "thstrm_amount": "15,000,000,000", "frmtrm_amount": "-", "bfefrmtrm_amount": "9,000,000,000"}]})
+    if p == "fnlttSinglAcntAll.json":
+        if q["corp_code"] == "00123456" and q["fs_div"] == "CFS" and q["bsns_year"] == "2025":
+            R = lambda sj, aid, nm, cur, prior="": {"sj_div": sj, "account_id": aid, "account_nm": nm, "thstrm_amount": cur,
+                                                     "frmtrm_amount": prior, "rcept_no": "20260318000222", "corp_name": "가나다케미칼"}
+            return httpx.Response(200, json={"status": "000", "list": [
+                R("BS", "ifrs-full_CashAndCashEquivalents", "현금및현금성자산", "30000000000", "20000000000"),
+                R("BS", "ifrs-full_RightofuseAssets", "사용권자산", "9000000000"),
+                R("BS", "ifrs-full_ShorttermBorrowings", "단기차입금", "40000000000"),
+                R("BS", "-표준계정코드 미사용-", "유동성장기부채", "10000000000"),
+                R("BS", "ifrs-full_CurrentLeaseLiabilities", "유동리스부채", "2000000000"),
+                R("BS", "-표준계정코드 미사용-", "전환사채", "15000000000"),
+                R("BS", "-표준계정코드 미사용-", "전환권조정", "-1000000000"),
+                R("BS", "-표준계정코드 미사용-", "미지급사채이자", "300000000"),
+                R("BS", "ifrs-full_LongtermBorrowings", "장기차입금", "25000000000"),
+                R("BS", "ifrs-full_NoncurrentLeaseLiabilities", "비유동리스부채", "5000000000"),
+                R("BS", "ifrs-full_Liabilities", "부채총계", "150000000000"),
+                R("BS", "ifrs-full_Equity", "자본총계", "200000000000"),
+                R("IS", "ifrs-full_Revenue", "매출액", "123400000000", "110000000000"),
+                R("IS", "ifrs-full_FinanceCosts", "금융원가", "4000000000"),
+                R("IS", "ifrs-full_ProfitLossBeforeTax", "법인세비용차감전순이익", "20000000000"),
+                R("IS", "ifrs-full_IncomeTaxExpenseContinuingOperations", "법인세비용", "4400000000"),
+                R("CF", "x", "영업활동현금흐름", "1"),
+            ]})
+        if q["corp_code"] == "00333333" and q["fs_div"] == "OFS" and q["bsns_year"] == "2025":
+            return httpx.Response(200, json={"status": "000", "list": [
+                {"sj_div": "BS", "account_id": "ifrs-full_Liabilities", "account_nm": "부채총계", "thstrm_amount": "500", "rcept_no": "20260401000333", "corp_name": "라마바"},
+                {"sj_div": "BS", "account_id": "ifrs-full_Equity", "account_nm": "자본총계", "thstrm_amount": "1000", "rcept_no": "20260401000333", "corp_name": "라마바"},
+                {"sj_div": "BS", "account_id": "x", "account_nm": "차입금", "thstrm_amount": "200", "rcept_no": "20260401000333", "corp_name": "라마바"}]})
+        return httpx.Response(200, json={"status": "013", "message": "없음"})
+    if p == "stockTotqySttus.json":
+        return httpx.Response(200, json={"status": "000", "list": [
+            {"se": "보통주", "istc_totqy": "10,000,000", "tesstk_co": "500,000", "distb_stock_co": "9,500,000"},
+            {"se": "우선주", "istc_totqy": "100", "tesstk_co": "0", "distb_stock_co": "100"},
+            {"se": "합계", "istc_totqy": "10,000,100", "tesstk_co": "500,000", "distb_stock_co": "9,500,100"}]})
     return httpx.Response(200, json={"status": "100", "message": "bad"})
 
 
@@ -144,7 +178,7 @@ def test_wrong_secret_is_404(http):
 def test_tools_listed_read_only(http):
     rpc(http, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
     tools = rpc(http, "tools/list", {}, 2)["result"]["tools"]
-    assert {t["name"] for t in tools} == {"search_company", "research_bundle"}
+    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure"}
     assert all(t["annotations"]["readOnlyHint"] for t in tools)
 
 
@@ -208,3 +242,40 @@ def test_dart_limit_message(http, tmp_path):
     server._client = DartClient("dummy", tmp_path / "x", httpx.AsyncClient(transport=httpx.MockTransport(limited)))
     res = call(http, "research_bundle", {"corp_code": "00123456"})
     assert res["isError"] and "2만 건" in res["content"][0]["text"]
+
+
+def test_capital_structure_debt_classification(http):
+    b = call(http, "capital_structure", {"companies": ["가나다케미칼", "00333333", "없는회사"], "year": 2025})["structuredContent"]
+    a = b["companies"][0]
+    d = a["interest_bearing_debt"]
+    types = {i["account"]: i["type"] for i in d["items"]}
+    assert types == {"단기차입금": "단기차입금", "유동성장기부채": "유동성장기차입금", "전환사채": "사채", "장기차입금": "장기차입금",
+                     "유동리스부채": "리스부채", "비유동리스부채": "리스부채"}
+    assert d["total"] == 97_000_000_000 and d["lease_total"] == 7_000_000_000
+    assert [i["account"] for i in d["review_items"]] == ["전환권조정"]  # 합산 안 하고 검토로
+    assert a["net_debt"] == 67_000_000_000
+    assert a["ratios"] == {"debt_ratio_pct": 75.0, "book_d_e_pct": 48.5, "net_d_e_pct": 33.5, "effective_tax_rate_pct": 22.0}
+    assert a["totals"]["finance_costs"] == 4_000_000_000
+    assert a["shares"]["common"] == {"issued": 10_000_000, "treasury": 500_000, "outstanding": 9_500_000}
+    assert a["basis"] == "연결" and a["url"].endswith("20260318000222")
+    # 연결이 없으면 별도로, 못 찾은 회사는 오류만 그 회사에
+    r2 = b["companies"][1]
+    assert r2["basis"] == "별도" and r2["interest_bearing_debt"]["total"] == 200 and any("별도 기준" in n for n in r2["notes"])
+    assert "찾지 못했습니다" in b["companies"][2]["error"]
+    row = b["summary_table"][0]
+    assert row["이자부부채_백만원"] == 97_000 and row["장부가DE_%"] == 48.5 and row["유통보통주식수"] == 9_500_000
+
+
+def test_capital_structure_without_lease(http):
+    a = call(http, "capital_structure", {"companies": ["00123456"], "year": 2025, "include_lease": False})["structuredContent"]["companies"][0]
+    assert a["interest_bearing_debt"]["total"] == 90_000_000_000 and a["interest_bearing_debt"]["lease_total"] == 7_000_000_000
+
+
+def test_financial_statements_and_missing_year(http):
+    b = call(http, "financial_statements", {"company": "00123456", "year": 2025, "statements": "BS"})["structuredContent"]
+    assert b["basis"] == "연결" and b["unit"] == "원" and all(r["st"] == "BS" for r in b["rows"])
+    assert {"st": "BS", "account": "단기차입금", "id": "ifrs-full_ShorttermBorrowings", "current": 40_000_000_000, "prior": None} in b["rows"]
+    res = call(http, "financial_statements", {"company": "00123456", "year": 2024})
+    assert res["isError"] and "재무제표가 DART에 없습니다" in res["content"][0]["text"]
+    res = call(http, "financial_statements", {"company": "00123456", "year": 2025, "period": "monthly"})
+    assert res["isError"] and "annual" in res["content"][0]["text"]

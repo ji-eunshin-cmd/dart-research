@@ -23,7 +23,10 @@ from mcp.types import ToolAnnotations
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+import asyncio
+
 from dart_client import VIEWER, DartClient, DartError
+from finance import PERIOD_KO, PERIODS, compact_statements, summarize
 from sections import parse, pick_annual, pick_audit
 
 SECRET = os.environ.get("CONNECTOR_SECRET", "")
@@ -32,7 +35,9 @@ if len(SECRET) < 24 or not re.fullmatch(r"[A-Za-z0-9_-]+", SECRET):
 
 mcp = FastMCP(
     "DART Research",
-    instructions="한국 DART 공시에서 회사개요·연혁·사업의 내용·최대주주·주요 재무를 가져옵니다. 먼저 search_company로 고유번호를 찾고 research_bundle을 부르세요.",
+    instructions=("한국 DART 공시를 읽습니다. 회사개요·산업 자료는 search_company → research_bundle, "
+                  "공시 재무제표는 financial_statements, WACC 대용기업의 이자부부채·순차입금·장부가 D/E·발행주식수는 capital_structure(여러 회사 한 번에)를 쓰세요. "
+                  "금액 단위는 원입니다. 이자부부채는 넣은 계정(items)과 검토할 계정(review_items)을 함께 사용자에게 보여 주세요."),
     stateless_http=True,
     json_response=True,
     streamable_http_path=f"/{SECRET}/mcp",
@@ -170,6 +175,124 @@ async def research_bundle(corp_code: str, max_chars: int = 30000) -> dict:
     return {"corp_code": corp_code, "corp_name": name,
             "report": {"rcept_no": rno, "report_nm": rnm, "rcept_dt": rdt, "kind": rep["kind"], "url": url},
             "sources": sources, "materials": materials, "notes": notes}
+
+
+async def _resolve(c: DartClient, ref: str) -> tuple[str | None, str | None, str | None]:
+    """고유번호 8자리 또는 회사명 → (corp_code, corp_name, 안내문)."""
+    ref = (ref or "").strip()
+    if re.fullmatch(r"\d{8}", ref):
+        return ref, None, None
+    hits = await c.search(ref, 3)
+    if not hits:
+        return None, None, f"'{ref}'을(를) DART에서 찾지 못했습니다."
+    h = hits[0]
+    note = None if len(hits) == 1 or h.corp_name.replace(" ", "") == ref.replace(" ", "") else \
+        f"'{ref}' → '{h.corp_name}'({h.corp_code})로 골랐습니다. 다른 회사면 고유번호로 다시 요청하세요."
+    return h.corp_code, h.corp_name, note
+
+
+async def _statements(c: DartClient, corp_code: str, year: int, period: str, consolidated: bool) -> tuple[list[dict], str, list[str]]:
+    notes = []
+    order = ["CFS", "OFS"] if consolidated else ["OFS", "CFS"]
+    for i, fs in enumerate(order):
+        rows = await c.full_statements(corp_code, str(year), PERIODS[period], fs)
+        if rows:
+            if i:
+                notes.append(f"{'연결' if order[0] == 'CFS' else '별도'} 재무제표가 없어 {'연결' if fs == 'CFS' else '별도'} 기준으로 가져왔습니다.")
+            return rows, fs, notes
+    raise ToolError(f"{year}년 {PERIOD_KO[period]} 재무제표가 DART에 없습니다(아직 미공시이거나 XBRL 재무제표가 없는 회사).")
+
+
+def _check_period(year: int, period: str) -> None:
+    if period not in PERIODS:
+        raise ToolError("period는 annual, q3, half, q1 중 하나입니다.")
+    if not 2015 <= int(year) <= date.today().year:
+        raise ToolError("year는 2015년 이후 사업연도입니다.")
+
+
+@mcp.tool(annotations=READ)
+async def financial_statements(company: str, year: int, period: str = "annual", consolidated: bool = True,
+                               statements: str = "BS,IS") -> dict:
+    """한 회사의 공시 재무제표(XBRL) 전체 계정을 가져옵니다. company는 회사명 또는 고유번호 8자리, year는 사업연도,
+    period는 annual(사업보고서)·q3·half·q1, consolidated=True면 연결(없으면 별도로 대체), statements는 BS·IS·CIS·CF·SCE 중 쉼표로.
+    금액 단위는 원이며 current=당기, prior=전기(분기·반기 손익은 누적)."""
+    _check_period(year, period)
+    c = client()
+    try:
+        code, name, note = await _resolve(c, company)
+        if not code:
+            raise ToolError(note)
+        rows, fs, notes = await _statements(c, code, year, period, consolidated)
+    except DartError as e:
+        raise ToolError(str(e)) from e
+    sts = [x.strip().upper() for x in statements.split(",") if x.strip()]
+    rno = rows[0].get("rcept_no", "")
+    return {"corp_code": code, "corp_name": name or rows[0].get("corp_name", ""), "year": year, "period": PERIOD_KO[period],
+            "basis": "연결" if fs == "CFS" else "별도", "unit": "원", "rcept_no": rno, "url": VIEWER.format(rno) if rno else None,
+            "notes": [n for n in [note, *notes] if n], "rows": compact_statements(rows, sts)}
+
+
+async def _one_capital(c: DartClient, ref: str, year: int, period: str, consolidated: bool, include_lease: bool) -> dict:
+    try:
+        code, name, note = await _resolve(c, ref)
+        if not code:
+            return {"input": ref, "error": note}
+        rows, fs, notes = await _statements(c, code, year, period, consolidated)
+        s = summarize(rows, include_lease)
+        shares = {}
+        try:
+            for r in await c.share_count(code, str(year), PERIODS[period]):
+                if (r.get("se") or "").replace(" ", "") in ("보통주", "합계"):
+                    key = "common" if "보통" in r.get("se", "") else "total"
+                    shares[key] = {"issued": _num(r.get("istc_totqy")), "treasury": _num(r.get("tesstk_co")),
+                                   "outstanding": _num(r.get("distb_stock_co"))}
+        except DartError as e:
+            notes.append(f"주식 수를 가져오지 못했습니다: {e}")
+        if s["interest_bearing_debt"]["review_items"]:
+            notes.append("review_items의 조정·우선주·파생 계정은 합산하지 않았습니다. 필요하면 반영하세요.")
+        if s["totals"]["equity"] is None:
+            notes.append("자본총계 계정을 찾지 못했습니다. rows로 직접 확인하세요.")
+        rno = rows[0].get("rcept_no", "")
+        return {"input": ref, "corp_code": code, "corp_name": name or rows[0].get("corp_name", ""), "basis": "연결" if fs == "CFS" else "별도",
+                "report": f"{year} {PERIOD_KO[period]}", "rcept_no": rno, "url": VIEWER.format(rno) if rno else None, "unit": "원",
+                **s, "shares": shares, "notes": [n for n in [note, *notes] if n]}
+    except ToolError as e:
+        return {"input": ref, "error": str(e)}
+    except DartError as e:
+        return {"input": ref, "error": str(e)}
+
+
+@mcp.tool(annotations=READ)
+async def capital_structure(companies: list[str], year: int, period: str = "annual", consolidated: bool = True,
+                            include_lease: bool = True) -> dict:
+    """WACC 대용기업용: 여러 회사(최대 15곳, 회사명 또는 고유번호)의 공시 재무제표에서 이자부부채(단기·유동성장기·장기차입금, 사채, 기업어음, 리스부채 선택)를
+    계정 근거와 함께 합산하고 현금, 순차입금, 부채총계, 자본총계, 부채비율, 장부가 D/E, 유효세율, 금융원가, 발행·자기·유통 보통주식수를 돌려줍니다.
+    시가 D/E는 이자부부채 ÷ (평가기준일 주가 × 유통주식수)로 계산하세요(주가는 이 도구에 없음). 금액 단위 원."""
+    _check_period(year, period)
+    refs = [r for r in dict.fromkeys(x.strip() for x in companies) if r][:15]
+    if not refs:
+        raise ToolError("companies에 회사명이나 고유번호를 넣어 주세요.")
+    c = client()
+    sem = asyncio.Semaphore(4)
+
+    async def run(ref):
+        async with sem:
+            return await _one_capital(c, ref, year, period, consolidated, include_lease)
+
+    results = await asyncio.gather(*(run(r) for r in refs))
+    table = []
+    for r in results:
+        if "error" in r:
+            table.append({"company": r["input"], "error": r["error"]})
+            continue
+        t, d = r["totals"], r["interest_bearing_debt"]
+        m = lambda v: round(v / 1e6) if v is not None else None
+        table.append({"company": r["corp_name"], "basis": r["basis"], "이자부부채_백만원": m(d["total"]), "현금_백만원": m(t["cash"]),
+                      "순차입금_백만원": m(r["net_debt"]), "부채총계_백만원": m(t["liabilities"]), "자본총계_백만원": m(t["equity"]),
+                      "부채비율_%": r["ratios"]["debt_ratio_pct"], "장부가DE_%": r["ratios"]["book_d_e_pct"],
+                      "유효세율_%": r["ratios"]["effective_tax_rate_pct"],
+                      "유통보통주식수": (r["shares"].get("common") or {}).get("outstanding")})
+    return {"year": year, "period": PERIOD_KO[period], "lease_included": include_lease, "summary_table": table, "companies": results}
 
 
 @mcp.custom_route("/health", methods=["GET"])

@@ -219,6 +219,16 @@ class DartClient:
         data = await self._json("hyslrSttus.json", corp_code=corp_code, bsns_year=year, reprt_code="11011")
         return data.get("list", [])
 
+    async def full_statements(self, corp_code: str, year: str, reprt_code: str, fs_div: str) -> list[dict]:
+        """단일회사 전체 재무제표 (XBRL, 상장사·일부 비상장사). fs_div: CFS 연결 / OFS 별도"""
+        data = await self._json("fnlttSinglAcntAll.json", corp_code=corp_code, bsns_year=year, reprt_code=reprt_code, fs_div=fs_div)
+        return data.get("list", [])
+
+    async def share_count(self, corp_code: str, year: str, reprt_code: str) -> list[dict]:
+        """주식의 총수 현황 (발행주식총수·자기주식·유통주식수)"""
+        data = await self._json("stockTotqySttus.json", corp_code=corp_code, bsns_year=year, reprt_code=reprt_code)
+        return data.get("list", [])
+
     async def financials(self, corp_code: str, year: str) -> list[dict]:
         data = await self._json("fnlttSinglAcnt.json", corp_code=corp_code, bsns_year=year, reprt_code="11011")
         return data.get("list", [])
