@@ -127,18 +127,30 @@ class DartClient:
 
     async def _download_corps(self) -> None:
         f = self.cache / "corpcode.zip"
+        t0 = time.time()
+        print(f"[DART] 회사 목록 받기 시작 (저장 위치 {f})", flush=True)
         try:
-            r = await self.http.get(f"{BASE}/corpCode.xml", params={"crtfc_key": self.key},
-                                    timeout=httpx.Timeout(600.0, connect=15.0))
-            content = r.content
-            if r.status_code != 200 or not content.startswith(b"PK"):
+            buf = bytearray()
+            last = t0
+            async with self.http.stream("GET", f"{BASE}/corpCode.xml", params={"crtfc_key": self.key},
+                                        timeout=httpx.Timeout(120.0, connect=15.0)) as r:
+                async for chunk in r.aiter_bytes():
+                    buf.extend(chunk)
+                    if time.time() - last > 20:
+                        last = time.time()
+                        print(f"[DART] 회사 목록 받는 중… {len(buf) / 1e6:.1f}MB, {last - t0:.0f}초", flush=True)
+                    if time.time() - t0 > 900:
+                        raise DartError("15분 안에 받지 못했습니다")
+                status = r.status_code
+            content = bytes(buf)
+            if status != 200 or not content.startswith(b"PK"):
                 self._zip_error(content)
             corps = self._parse_corps(content)
             f.write_bytes(content)
             self._corps, self._corps_at = corps, time.time()
-            print(f"[DART] 회사 목록 {len(corps):,}곳 받음", flush=True)
+            print(f"[DART] 회사 목록 {len(corps):,}곳 받음 ({len(content) / 1e6:.1f}MB, {time.time() - t0:.0f}초)", flush=True)
         except Exception as e:  # 다음 요청 때 다시 시도
-            print(f"[DART] 회사 목록 받기 실패: {e}", flush=True)
+            print(f"[DART] 회사 목록 받기 실패 ({time.time() - t0:.0f}초): {type(e).__name__}: {e}", flush=True)
             raise
 
     def warm(self) -> None:
@@ -148,8 +160,9 @@ class DartClient:
             if f.exists():
                 try:
                     self._corps, self._corps_at = self._parse_corps(f.read_bytes()), f.stat().st_mtime
-                except Exception:
-                    pass
+                    print(f"[DART] 저장된 회사 목록 {len(self._corps):,}곳을 읽었습니다", flush=True)
+                except Exception as e:
+                    print(f"[DART] 저장된 회사 목록을 읽지 못함: {e}", flush=True)
         fresh = self._corps is not None and time.time() - self._corps_at < 86400
         if not fresh and (self._refresh is None or self._refresh.done()):
             self._refresh = asyncio.get_running_loop().create_task(self._download_corps())
