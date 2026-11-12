@@ -282,7 +282,7 @@ def test_capital_structure_without_lease(http):
 def test_financial_statements_and_missing_year(http):
     b = call(http, "financial_statements", {"company": "00123456", "year": 2025, "statements": "BS"})["structuredContent"]
     assert b["basis"] == "연결" and b["unit"] == "원" and all(r["st"] == "BS" for r in b["rows"])
-    assert {"st": "BS", "account": "단기차입금", "id": "ifrs-full_ShorttermBorrowings", "current": 40_000_000_000, "prior": None} in b["rows"]
+    assert {"st": "BS", "ord": 0, "account": "단기차입금", "id": "ifrs-full_ShorttermBorrowings", "current": 40_000_000_000, "prior": None} in b["rows"]
     res = call(http, "financial_statements", {"company": "00123456", "year": 2024})
     assert res["isError"] and "재무제표가 DART에 없습니다" in res["content"][0]["text"]
     res = call(http, "financial_statements", {"company": "00123456", "year": 2025, "period": "monthly"})

@@ -177,7 +177,12 @@ def compact_statements(rows: list[dict], statements: list[str]) -> list[dict]:
         if sj not in statements:
             continue
         prior = r.get("frmtrm_add_amount") if sj in ("IS", "CIS") and r.get("frmtrm_add_amount") not in (None, "", "-") else r.get("frmtrm_amount")
-        out.append({"st": sj, "account": (r.get("account_nm") or "").strip(), "id": r.get("account_id") or "",
+        try:
+            ordv = int(r.get("ord") or 0)
+        except ValueError:
+            ordv = 0
+        out.append({"st": sj, "ord": ordv, "account": (r.get("account_nm") or "").strip(), "id": r.get("account_id") or "",
                     "current": cur(r), "prior": amount(prior),
                     **({"prior2": amount(r.get("bfefrmtrm_amount"))} if r.get("bfefrmtrm_amount") not in (None, "") else {})})
+    out.sort(key=lambda x: (x["st"], x["ord"]))  # 공시 화면의 표시 순서 (ord)
     return out
