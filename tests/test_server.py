@@ -186,7 +186,7 @@ def test_wrong_secret_is_404(http):
 def test_tools_listed_read_only(http):
     rpc(http, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
     tools = rpc(http, "tools/list", {}, 2)["result"]["tools"]
-    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure"}
+    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure", "fetch_url"}
     assert all(t["annotations"]["readOnlyHint"] for t in tools)
 
 

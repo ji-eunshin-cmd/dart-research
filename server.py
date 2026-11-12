@@ -25,9 +25,12 @@ from starlette.responses import JSONResponse
 
 import asyncio
 
+import httpx
+
 from dart_client import VIEWER, DartClient, DartError
 from finance import PERIOD_KO, PERIODS, compact_statements, summarize
 from sections import parse, pick_annual, pick_audit
+from webpage import PageError, fetch as fetch_page
 
 SECRET = os.environ.get("CONNECTOR_SECRET", "")
 if len(SECRET) < 24 or not re.fullmatch(r"[A-Za-z0-9_-]+", SECRET):
@@ -37,7 +40,8 @@ mcp = FastMCP(
     "DART Research",
     instructions=("한국 DART 공시를 읽습니다. 회사개요·산업 자료는 search_company → research_bundle, "
                   "공시 재무제표는 financial_statements, WACC 대용기업의 이자부부채·순차입금·장부가 D/E·발행주식수는 capital_structure(여러 회사 한 번에)를 쓰세요. "
-                  "금액 단위는 원입니다. 이자부부채는 넣은 계정(items)과 검토할 계정(review_items)을 함께 사용자에게 보여 주세요."),
+                  "금액 단위는 원입니다. 이자부부채는 넣은 계정(items)과 검토할 계정(review_items)을 함께 사용자에게 보여 주세요. "
+                  "사용자가 준 기사·보고서 링크의 본문은 fetch_url로 읽습니다(검색 기능은 없음)."),
     stateless_http=True,
     json_response=True,
     streamable_http_path=f"/{SECRET}/mcp",
@@ -299,6 +303,17 @@ async def capital_structure(companies: list[str], year: int, period: str = "annu
                       "유통보통주식수": (r["shares"].get("common") or {}).get("outstanding"),
                       "주석확인필요": d["approximate"]})
     return {"year": year, "period": PERIOD_KO[period], "lease_included": include_lease, "summary_table": table, "companies": results}
+
+
+@mcp.tool(annotations=READ)
+async def fetch_url(url: str, max_chars: int = 15000) -> dict:
+    """사용자가 고른 기사·보고서 링크 하나의 본문을 읽어 옵니다(HTML 기사, 글자가 든 PDF). 제목·언론사(site)·게재일·본문(text)을 돌려줍니다. 네이버 뉴스는 기사 본문만 골라냅니다. 로그인·유료 페이지나 화면이 뜬 뒤 본문을 불러오는 사이트는 본문이 비어 notes에 안내가 들어갑니다. 검색은 하지 않습니다."""
+    try:
+        return await fetch_page(url, client().http, max(1000, min(int(max_chars), 40000)))
+    except PageError as e:
+        raise ToolError(str(e))
+    except httpx.HTTPError as e:
+        raise ToolError(f"페이지에 연결하지 못했습니다: {type(e).__name__}")
 
 
 @mcp.custom_route("/health", methods=["GET"])
