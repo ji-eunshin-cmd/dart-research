@@ -41,7 +41,8 @@ mcp = FastMCP(
     instructions=("한국 DART 공시를 읽습니다. 회사개요·산업 자료는 search_company → research_bundle, "
                   "공시 재무제표는 financial_statements, WACC 대용기업의 이자부부채·순차입금·장부가 D/E·발행주식수는 capital_structure(여러 회사 한 번에)를 쓰세요. "
                   "금액 단위는 원입니다. 이자부부채는 넣은 계정(items)과 검토할 계정(review_items)을 함께 사용자에게 보여 주세요. "
-                  "사용자가 준 기사·보고서 링크의 본문은 fetch_url로 읽습니다(검색 기능은 없음)."),
+                  "사용자가 준 기사·보고서 링크의 본문은 fetch_url로 읽습니다(검색 기능은 없음). "
+                  "리서치 JSON을 보고서 앱에 넣을 때는 report_status로 보고서를 확인하고 send_research로 보냅니다."),
     stateless_http=True,
     json_response=True,
     streamable_http_path=f"/{SECRET}/mcp",
@@ -356,6 +357,48 @@ async def fetch_url(url: str, max_chars: int = 15000) -> dict:
         raise ToolError(str(e))
     except httpx.HTTPError as e:
         raise ToolError(f"페이지에 연결하지 못했습니다: {type(e).__name__}")
+
+
+# ---------------------------------------------------------------- 보고서 앱으로 리서치 보내기
+REPORT_APP_URL = os.environ.get("REPORT_APP_URL", "").rstrip("/")
+RESEARCH_TOKEN = os.environ.get("RESEARCH_TOKEN", "")
+
+
+async def _report_app(method: str, report_id: str, body: dict | None = None) -> dict:
+    if not REPORT_APP_URL or len(RESEARCH_TOKEN) < 24:
+        raise ToolError("커넥터에 REPORT_APP_URL·RESEARCH_TOKEN이 설정되지 않아 보고서 앱으로 보낼 수 없습니다.")
+    rid = (report_id or "").strip().lower()
+    if not re.fullmatch(r"[a-f0-9]{64}", rid):
+        raise ToolError("보고서 ID는 보고서 앱 화면의 64자리 영문 소문자·숫자입니다.")
+    try:
+        r = await client().http.request(method, f"{REPORT_APP_URL}/api/reports/{rid}/research", json=body,
+                                        headers={"X-Research-Token": RESEARCH_TOKEN}, timeout=httpx.Timeout(90.0, connect=10.0))
+    except httpx.HTTPError as e:
+        raise ToolError(f"보고서 앱에 연결하지 못했습니다: {type(e).__name__}")
+    try:
+        data = r.json()
+    except ValueError:
+        raise ToolError(f"보고서 앱 응답을 읽지 못했습니다(HTTP {r.status_code}). 앱에 리서치 받기 기능이 배포됐는지 확인하세요.")
+    if r.status_code >= 400 or not data.get("ok"):
+        msg = data.get("error") or " / ".join(data.get("errors") or []) or f"HTTP {r.status_code}"
+        raise ToolError(msg)
+    return data
+
+
+@mcp.tool(annotations=READ)
+async def report_status(report_id: str) -> dict:
+    """보고서 앱의 보고서(64자리 ID)가 살아 있는지, 회사명·보고서 유형, 이미 받은 리서치가 있는지 확인합니다."""
+    return await _report_app("GET", report_id)
+
+
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True))
+async def send_research(report_id: str, research: dict) -> dict:
+    """리서치 아티팩트가 만든 회사개요 리서치 JSON(통일 양식 v2)을 보고서 앱의 해당 보고서에 넣습니다.
+    이미 만든 보고서 PPT가 있으면 바로 채우고, 없으면 보고서 생성 때 채웁니다. 같은 보고서에 다시 보내면 덮어씁니다.
+    커넥터는 JSON을 저장하지 않고 전달만 합니다(보고서 앱에서 24시간 뒤 보고서와 함께 삭제)."""
+    if not isinstance(research, dict):
+        raise ToolError("research는 JSON 객체여야 합니다.")
+    return await _report_app("POST", report_id, research)
 
 
 @mcp.custom_route("/health", methods=["GET"])

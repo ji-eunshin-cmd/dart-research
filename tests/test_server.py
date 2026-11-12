@@ -187,8 +187,8 @@ def test_wrong_secret_is_404(http):
 def test_tools_listed_read_only(http):
     rpc(http, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
     tools = rpc(http, "tools/list", {}, 2)["result"]["tools"]
-    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure", "fetch_url"}
-    assert all(t["annotations"]["readOnlyHint"] for t in tools)
+    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure", "fetch_url", "report_status", "send_research"}
+    assert all(t["annotations"]["readOnlyHint"] for t in tools if t["name"] != "send_research")
 
 
 def test_search_ignores_corp_suffix_and_ranks(http):
@@ -325,3 +325,29 @@ def test_cache_purged_after_24h(tmp_path):
     c.purge(force=True)
     assert not old.exists() and new.exists() and corp.exists()
     assert "a" not in c._json_cache and "b" in c._json_cache
+
+
+def test_send_research_requires_config(http):
+    res = call(http, "send_research", {"report_id": "a" * 64, "research": {"meta": {}}})
+    assert res["isError"] and "REPORT_APP_URL" in res["content"][0]["text"]
+
+
+def test_send_research_relays(monkeypatch):
+    import asyncio as _a
+    seen = {}
+    def app_handler(req):
+        seen["url"], seen["tok"], seen["body"] = str(req.url), req.headers.get("x-research-token"), json.loads(req.content or b"null")
+        return httpx.Response(200, json={"ok": True, "message": "저장했습니다.", "company": "가나다"})
+    monkeypatch.setattr(server, "REPORT_APP_URL", "https://app.example.com")
+    monkeypatch.setattr(server, "RESEARCH_TOKEN", "t" * 30)
+    c = server.client()
+    old = c.http
+    c.http = httpx.AsyncClient(transport=httpx.MockTransport(app_handler))
+    try:
+        out = _a.run(server.send_research("A" * 64, {"meta": {"schema_version": "2.0"}}))
+        assert out["ok"] and seen["url"] == "https://app.example.com/api/reports/" + "a" * 64 + "/research"
+        assert seen["tok"] == "t" * 30 and seen["body"]["meta"]["schema_version"] == "2.0"
+        with pytest.raises(Exception):
+            _a.run(server.send_research("short", {}))
+    finally:
+        c.http = old
