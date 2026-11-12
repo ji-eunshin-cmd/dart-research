@@ -83,7 +83,8 @@ def handler(req: httpx.Request) -> httpx.Response:
         if q["corp_code"] == "00123456" and q["pblntf_ty"] == "A":
             return httpx.Response(200, json={"status": "000", "list": [
                 {"rcept_no": "20250320000111", "report_nm": "사업보고서 (2024.12)", "rcept_dt": "20250320"},
-                {"rcept_no": "20260318000222", "report_nm": "[기재정정]사업보고서 (2025.12)", "rcept_dt": "20260318"}]})
+                {"rcept_no": "20260318000222", "report_nm": "[기재정정]사업보고서 (2025.12)", "rcept_dt": "20260318"},
+                {"rcept_no": "20261110000444", "report_nm": "분기보고서 (2026.09)", "rcept_dt": "20261110"}]})
         if q["corp_code"] == "00333333" and q["pblntf_ty"] == "F":
             return httpx.Response(200, json={"status": "000", "list": [{"rcept_no": "20260401000333", "report_nm": "감사보고서 (2025.12)", "rcept_dt": "20260401"}]})
         return httpx.Response(200, json={"status": "013", "message": "없음"})
@@ -253,7 +254,7 @@ def test_dart_limit_message(http, tmp_path):
 
 
 def test_capital_structure_debt_classification(http):
-    b = call(http, "capital_structure", {"companies": ["가나다케미칼", "00333333", "없는회사"], "year": 2025})["structuredContent"]
+    b = call(http, "capital_structure", {"companies": ["가나다케미칼", "00333333", "없는회사"], "year": 2025, "period": "annual"})["structuredContent"]
     a = b["companies"][0]
     d = a["interest_bearing_debt"]
     types = {i["account"]: i["type"] for i in d["items"]}
@@ -275,7 +276,7 @@ def test_capital_structure_debt_classification(http):
 
 
 def test_capital_structure_without_lease(http):
-    a = call(http, "capital_structure", {"companies": ["00123456"], "year": 2025, "include_lease": False})["structuredContent"]["companies"][0]
+    a = call(http, "capital_structure", {"companies": ["00123456"], "year": 2025, "include_lease": False, "period": "annual"})["structuredContent"]["companies"][0]
     assert a["interest_bearing_debt"]["total"] == 90_000_000_000 and a["interest_bearing_debt"]["lease_total"] == 7_000_000_000
 
 
@@ -290,7 +291,7 @@ def test_financial_statements_and_missing_year(http):
 
 
 def test_aggregated_financial_liabilities_flagged(http):
-    b = call(http, "capital_structure", {"companies": ["00222222"], "year": 2025})["structuredContent"]
+    b = call(http, "capital_structure", {"companies": ["00222222"], "year": 2025, "period": "annual"})["structuredContent"]
     a = b["companies"][0]
     d = a["interest_bearing_debt"]
     assert a["corp_name"] == "가나다케미칼홀딩스"  # 고유번호로 불러도 회사명이 채워짐
@@ -298,3 +299,14 @@ def test_aggregated_financial_liabilities_flagged(http):
     assert d["total"] == 1000 and d["approximate"] is True
     assert any(n.startswith("[주석 확인 필요]") for n in a["notes"])
     assert b["summary_table"][0]["주석확인필요"] is True and b["summary_table"][0]["company"] == "가나다케미칼홀딩스"
+
+
+def test_capital_latest_report_falls_back_to_annual(http):
+    # 가장 최근 분기보고서(2026.09)는 XBRL이 없어 그 이전 사업보고서(2025.12)로 내려감
+    r = call(http, "capital_structure", {"companies": ["00123456"]})["structuredContent"]
+    a = r["companies"][0]
+    assert r["period"] == "회사별 최근 정기보고서"
+    assert a["report"] == "2025 사업보고서(연간)" and a["period"] == "annual" and a["filed"] == "2026-03-18"
+    assert a["interest_bearing_debt"]["total"] > 0
+    res = call(http, "capital_structure", {"companies": ["00123456"], "period": "annual"})
+    assert res["isError"] and "year" in res["content"][0]["text"]

@@ -216,6 +216,15 @@ class DartClient:
                 return it
         return None
 
+    async def periodic_reports(self, corp_code: str, days: int = 550) -> list[dict]:
+        """최근 정기공시(사업·반기·분기보고서), 접수일 최신순."""
+        end = date.today()
+        data = await self._json("list.json", ttl=21600, corp_code=corp_code, bgn_de=(end - timedelta(days=days)).strftime("%Y%m%d"),
+                                end_de=end.strftime("%Y%m%d"), pblntf_ty="A", page_count=40)
+        items = [i for i in data.get("list", []) if re.search(r"(사업|반기|분기)보고서", i.get("report_nm", ""))]
+        items.sort(key=lambda i: (i.get("rcept_dt", ""), i.get("rcept_no", "")), reverse=True)
+        return items
+
     async def document_xml(self, rcept_no: str) -> bytes:
         f = self.cache / f"doc_{rcept_no}.zip"
         if f.exists():
