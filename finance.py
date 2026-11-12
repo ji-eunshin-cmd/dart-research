@@ -27,10 +27,16 @@ TOTALS = {
     "finance_costs": (["ifrs-full_FinanceCosts"], ["금융원가", "금융비용"]),
 }
 
+_AGG_IDS = {"ifrs-full_CurrentFinancialLiabilities", "ifrs-full_NoncurrentFinancialLiabilities",
+            "ifrs-full_OtherCurrentFinancialLiabilities", "ifrs-full_OtherNoncurrentFinancialLiabilities"}
+
+
 def _debt_type(k: str) -> str | None:
     """공백 뺀 계정명 → 이자부부채 종류 (해당 없으면 None)."""
     if re.search(r"이자|미지급|발행비|보증금|예수", k):
         return None
+    if "금융부채" in k and not re.search(r"파생|당기손익|기타금융부채|보증", k):
+        return "금융부채(묶음)"  # 재무상태표에 차입금·사채·리스가 '금융부채'로 묶여 표시된 경우
     if "기업어음" in k or "전자단기사채" in k:
         return "기업어음"
     if "유동성장기부채" in k:
@@ -123,14 +129,19 @@ def classify_debt(rows: list[dict], include_lease: bool) -> dict:
             continue
         if "자산" in k or "채권" in k or "합계" in k or "총계" in k:
             continue
-        typ = _DEBT_IDS.get(aid) or _debt_type(k)
+        typ = "금융부채(묶음)" if "금융부채" in k and _debt_type(k) == "금융부채(묶음)" else (_DEBT_IDS.get(aid) or _debt_type(k))
         if typ:
             included.append({**item, "type": typ})
     if include_lease:
         included += lease_rows
     total = sum(i["amount"] for i in included)
+    aggregated = [i for i in included if i["type"] == "금융부채(묶음)"]
     return {"items": included, "total": total, "lease_total": sum(i["amount"] for i in lease_rows),
-            "lease_included": include_lease, "review_items": review}
+            "lease_included": include_lease, "review_items": review,
+            "approximate": bool(aggregated),
+            "approximate_reason": ("재무상태표에 차입금이 '단기·장기금융부채'로 묶여 있어 그 금액을 그대로 넣었습니다. "
+                                   "리스부채·기타 금융부채가 섞여 있을 수 있으니 사업보고서 주석의 차입금·사채·리스부채 내역으로 확인하세요.")
+                                  if aggregated else None}
 
 
 def pct(a: int | None, b: int | None) -> float | None:

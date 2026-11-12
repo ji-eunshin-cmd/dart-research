@@ -73,6 +73,8 @@ def handler(req: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json={"status": "000", "corp_name": "가나다케미칼", "corp_name_eng": "GANADA CHEMICAL", "ceo_nm": "김가상",
                                              "corp_cls": "Y", "stock_code": "123450", "adres": "전라남도 광양시 가상로 1", "est_dt": "20080315",
                                              "induty_code": "20119", "acc_mt": "12", "hm_url": "www.example.com"})
+        if q["corp_code"] == "00222222":
+            return httpx.Response(200, json={"status": "000", "corp_name": "가나다케미칼홀딩스", "corp_cls": "E"})
         if q["corp_code"] == "00333333":
             return httpx.Response(200, json={"status": "000", "corp_name": "라마바", "ceo_nm": "이가상", "corp_cls": "E", "stock_code": " ",
                                              "adres": "부산", "est_dt": "20150101", "induty_code": "22229", "acc_mt": "12"})
@@ -124,6 +126,12 @@ def handler(req: httpx.Request) -> httpx.Response:
                 R("IS", "ifrs-full_IncomeTaxExpenseContinuingOperations", "법인세비용", "4400000000"),
                 R("CF", "x", "영업활동현금흐름", "1"),
             ]})
+        if q["corp_code"] == "00222222" and q["fs_div"] == "CFS":
+            R = lambda aid, nm, cur: {"sj_div": "BS", "account_id": aid, "account_nm": nm, "thstrm_amount": cur, "rcept_no": "1", "corp_name": ""}
+            return httpx.Response(200, json={"status": "000", "list": [
+                R("ifrs-full_CurrentFinancialLiabilities", "단기금융부채", "700"), R("ifrs-full_NoncurrentFinancialLiabilities", "장기금융부채", "300"),
+                R("dart_CurrentDerivativeLiabilities", "유동파생상품부채", "50"), R("ifrs-full_CurrentFinancialAssets", "단기금융자산", "999"),
+                R("ifrs-full_Liabilities", "부채총계", "2000"), R("ifrs-full_Equity", "자본총계", "4000")]})
         if q["corp_code"] == "00333333" and q["fs_div"] == "OFS" and q["bsns_year"] == "2025":
             return httpx.Response(200, json={"status": "000", "list": [
                 {"sj_div": "BS", "account_id": "ifrs-full_Liabilities", "account_nm": "부채총계", "thstrm_amount": "500", "rcept_no": "20260401000333", "corp_name": "라마바"},
@@ -279,3 +287,14 @@ def test_financial_statements_and_missing_year(http):
     assert res["isError"] and "재무제표가 DART에 없습니다" in res["content"][0]["text"]
     res = call(http, "financial_statements", {"company": "00123456", "year": 2025, "period": "monthly"})
     assert res["isError"] and "annual" in res["content"][0]["text"]
+
+
+def test_aggregated_financial_liabilities_flagged(http):
+    b = call(http, "capital_structure", {"companies": ["00222222"], "year": 2025})["structuredContent"]
+    a = b["companies"][0]
+    d = a["interest_bearing_debt"]
+    assert a["corp_name"] == "가나다케미칼홀딩스"  # 고유번호로 불러도 회사명이 채워짐
+    assert [(i["account"], i["type"]) for i in d["items"]] == [("단기금융부채", "금융부채(묶음)"), ("장기금융부채", "금융부채(묶음)")]
+    assert d["total"] == 1000 and d["approximate"] is True
+    assert any(n.startswith("[주석 확인 필요]") for n in a["notes"])
+    assert b["summary_table"][0]["주석확인필요"] is True and b["summary_table"][0]["company"] == "가나다케미칼홀딩스"

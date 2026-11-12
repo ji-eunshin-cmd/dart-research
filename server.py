@@ -181,7 +181,10 @@ async def _resolve(c: DartClient, ref: str) -> tuple[str | None, str | None, str
     """고유번호 8자리 또는 회사명 → (corp_code, corp_name, 안내문)."""
     ref = (ref or "").strip()
     if re.fullmatch(r"\d{8}", ref):
-        return ref, None, None
+        prof = await c.company(ref)  # 하루 캐시
+        if prof.get("status") == "013":
+            return None, None, f"고유번호 {ref}에 해당하는 회사가 없습니다."
+        return ref, prof.get("corp_name"), None
     hits = await c.search(ref, 3)
     if not hits:
         return None, None, f"'{ref}'을(를) DART에서 찾지 못했습니다."
@@ -248,6 +251,8 @@ async def _one_capital(c: DartClient, ref: str, year: int, period: str, consolid
                                    "outstanding": _num(r.get("distb_stock_co"))}
         except DartError as e:
             notes.append(f"주식 수를 가져오지 못했습니다: {e}")
+        if s["interest_bearing_debt"]["approximate"]:
+            notes.append("[주석 확인 필요] " + s["interest_bearing_debt"]["approximate_reason"])
         if s["interest_bearing_debt"]["review_items"]:
             notes.append("review_items의 조정·우선주·파생 계정은 합산하지 않았습니다. 필요하면 반영하세요.")
         if s["totals"]["equity"] is None:
@@ -291,7 +296,8 @@ async def capital_structure(companies: list[str], year: int, period: str = "annu
                       "순차입금_백만원": m(r["net_debt"]), "부채총계_백만원": m(t["liabilities"]), "자본총계_백만원": m(t["equity"]),
                       "부채비율_%": r["ratios"]["debt_ratio_pct"], "장부가DE_%": r["ratios"]["book_d_e_pct"],
                       "유효세율_%": r["ratios"]["effective_tax_rate_pct"],
-                      "유통보통주식수": (r["shares"].get("common") or {}).get("outstanding")})
+                      "유통보통주식수": (r["shares"].get("common") or {}).get("outstanding"),
+                      "주석확인필요": d["approximate"]})
     return {"year": year, "period": PERIOD_KO[period], "lease_included": include_lease, "summary_table": table, "companies": results}
 
 
