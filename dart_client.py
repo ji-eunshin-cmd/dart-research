@@ -26,6 +26,7 @@ from lxml import etree
 
 BASE = "https://opendart.fss.or.kr/api"
 VIEWER = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo={}"
+CORP_LIST_TTL = 7 * 86400  # 회사 목록은 일주일에 한 번 새로 받음 (그동안은 저장된 목록으로 검색)
 
 STATUS_MSG = {
     "010": "등록되지 않은 DART API 키입니다.",
@@ -116,7 +117,7 @@ class DartClient:
 
     # ------------------------------------------------------------ 회사 목록
     # DART 전체 회사 목록(수 MB)은 해외 서버에서 받는 데 몇 분 걸릴 수 있어서, 사용자를 기다리게 하지 않도록
-    # 백그라운드로 받습니다. 하루 지난 목록도 새 목록이 올 때까지는 그대로 씁니다.
+    # 백그라운드로 받습니다. 일주일 지난 목록도 새 목록이 올 때까지는 그대로 씁니다.
     @staticmethod
     def _parse_corps(content: bytes) -> list[Corp]:
         with zipfile.ZipFile(io.BytesIO(content)) as z:
@@ -163,7 +164,7 @@ class DartClient:
                     print(f"[DART] 저장된 회사 목록 {len(self._corps):,}곳을 읽었습니다", flush=True)
                 except Exception as e:
                     print(f"[DART] 저장된 회사 목록을 읽지 못함: {e}", flush=True)
-        fresh = self._corps is not None and time.time() - self._corps_at < 86400
+        fresh = self._corps is not None and time.time() - self._corps_at < CORP_LIST_TTL
         if not fresh and (self._refresh is None or self._refresh.done()):
             self._refresh = asyncio.get_running_loop().create_task(self._download_corps())
             self._refresh.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
