@@ -364,6 +364,7 @@ async def health(_: Request) -> JSONResponse:
     try:
         c = client()
         c.warm()
+        c.purge()
         ready = c._corps is not None
     except Exception:
         ready = False

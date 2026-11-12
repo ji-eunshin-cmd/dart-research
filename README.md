@@ -91,5 +91,5 @@ claude.ai 대화에서 커넥터를 켜고 그냥 요청하면 됩니다. 예: "
 
 ```bash
 pip install -r requirements.txt pytest
-python -m pytest tests -q        # 18 passed (가짜 DART 서버로 MCP 전체 경로, 가짜 기사·PDF로 링크 읽기 검증)
+python -m pytest tests -q        # 19 passed (가짜 DART 서버로 MCP 전체 경로, 가짜 기사·PDF로 링크 읽기 검증)
 ```

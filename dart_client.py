@@ -26,7 +26,8 @@ from lxml import etree
 
 BASE = "https://opendart.fss.or.kr/api"
 VIEWER = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo={}"
-CORP_LIST_TTL = 7 * 86400  # 회사 목록은 일주일에 한 번 새로 받음 (그동안은 저장된 목록으로 검색)
+CORP_LIST_TTL = 7 * 86400  # 회사 목록(DART 공개 고유번호 목록)은 일주일에 한 번 새로 받음
+RETENTION = 24 * 3600      # 그 밖의 캐시(공시 원문·API 응답)는 24시간 안에 지움
 
 STATUS_MSG = {
     "010": "등록되지 않은 DART API 키입니다.",
@@ -76,9 +77,26 @@ class DartClient:
         self._corps_at = 0.0
         self._refresh: asyncio.Task | None = None
         self._json_cache: dict[str, tuple[float, Any]] = {}
+        self._last_purge = 0.0
+
+    def purge(self, force: bool = False) -> None:
+        """24시간 지난 공시 원문 파일과 메모리 캐시를 지움 (10분마다 한 번 확인)."""
+        now = time.time()
+        if not force and now - self._last_purge < 600:
+            return
+        self._last_purge = now
+        for k in [k for k, (t, _) in self._json_cache.items() if now - t > RETENTION]:
+            self._json_cache.pop(k, None)
+        for p in self.cache.glob("doc_*.zip"):
+            try:
+                if now - p.stat().st_mtime > RETENTION:
+                    p.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     # ------------------------------------------------------------ 저수준
     async def _get(self, path: str, **params) -> httpx.Response:
+        self.purge()
         try:
             r = await self.http.get(f"{BASE}/{path}", params={"crtfc_key": self.key, **params})
         except httpx.HTTPError as e:
@@ -226,8 +244,9 @@ class DartClient:
         return items
 
     async def document_xml(self, rcept_no: str) -> bytes:
+        self.purge()
         f = self.cache / f"doc_{rcept_no}.zip"
-        if f.exists():
+        if f.exists() and time.time() - f.stat().st_mtime <= RETENTION:
             content = f.read_bytes()
         else:
             content = (await self._get("document.xml", rcept_no=rcept_no)).content

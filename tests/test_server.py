@@ -310,3 +310,18 @@ def test_capital_latest_report_falls_back_to_annual(http):
     assert a["interest_bearing_debt"]["total"] > 0
     res = call(http, "capital_structure", {"companies": ["00123456"], "period": "annual"})
     assert res["isError"] and "year" in res["content"][0]["text"]
+
+
+def test_cache_purged_after_24h(tmp_path):
+    import time as _t
+    import dart_client
+    c = DartClient("k", tmp_path, httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(404))))
+    old, new = tmp_path / "doc_1.zip", tmp_path / "doc_2.zip"
+    old.write_bytes(b"x"); new.write_bytes(b"y")
+    past = _t.time() - dart_client.RETENTION - 60
+    os.utime(old, (past, past))
+    c._json_cache["a"] = (past, {}); c._json_cache["b"] = (_t.time(), {})
+    corp = tmp_path / "corpcode.zip"; corp.write_bytes(b"z"); os.utime(corp, (past, past))
+    c.purge(force=True)
+    assert not old.exists() and new.exists() and corp.exists()
+    assert "a" not in c._json_cache and "b" in c._json_cache
