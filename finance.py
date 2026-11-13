@@ -19,6 +19,7 @@ TOTALS = {
     "equity": (["ifrs-full_Equity"], ["자본총계"]),
     "equity_parent": (["ifrs-full_EquityAttributableToOwnersOfParent"], ["지배기업의소유주에게귀속되는자본", "지배기업소유주지분", "지배기업소유지분"]),
     "cash": (["ifrs-full_CashAndCashEquivalents"], ["현금및현금성자산"]),
+    "nci": (["ifrs-full_NoncontrollingInterests"], ["비지배지분", "비지배주주지분"]),
     "revenue": (["ifrs-full_Revenue"], ["매출액", "수익(매출액)", "영업수익", "매출"]),
     "operating_income": (["dart_OperatingIncomeLoss", "ifrs-full_ProfitLossFromOperatingActivities"], ["영업이익", "영업이익(손실)", "영업손실"]),
     "pretax_income": (["ifrs-full_ProfitLossBeforeTax"], ["법인세비용차감전순이익", "법인세비용차감전순이익(손실)", "법인세차감전순이익"]),
@@ -151,7 +152,7 @@ def pct(a: int | None, b: int | None) -> float | None:
 
 
 def summarize(rows: list[dict], include_lease: bool) -> dict:
-    t = {k: find_total(rows, k, ("BS",) if k in ("assets", "liabilities", "equity", "equity_parent", "cash")
+    t = {k: find_total(rows, k, ("BS",) if k in ("assets", "liabilities", "equity", "equity_parent", "cash", "nci")
                        else ("IS", "CIS")) for k in TOTALS}
     debt = classify_debt(rows, include_lease)
     d = debt["total"]

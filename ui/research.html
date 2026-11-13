@@ -140,6 +140,10 @@ table.cap button.co{background:none;border:0;padding:0;font:inherit;color:var(--
 table.cap .calc{color:var(--accent);font-weight:500}
 .flag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin-left:6px;font-weight:500}
 .cap-detail:empty{display:none}
+.cap-sum:empty{display:none}
+.cap-sum{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;align-items:baseline}
+.cap-sum .lbl{color:var(--muted)}
+.cap-sum b{font-variant-numeric:tabular-nums;color:var(--accent)}
 .cap-detail{border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;font-size:13px;min-width:0}
 .cap-detail h3{margin:0;font-size:14px}
 .dart{background:var(--accent-soft);border-radius:6px;padding:14px;display:grid;gap:10px;min-width:0}
@@ -299,6 +303,7 @@ table.fin .user{color:var(--muted);font-size:11px}
     <div class="step-h"><span class="n">2</span><h2 id="c2h">자본구조</h2><span class="aside" id="capBasis"></span></div>
     <p class="cap-warn" id="capWarn" hidden>회사명을 클릭하여 DART 원문과 반드시 대조·검토하세요.</p>
     <div class="tbl-wrap"><table class="t cap" id="capTable"></table></div>
+    <div class="cap-sum" id="capSum" aria-live="polite"></div>
     <p class="foot" style="margin:0">(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산. 적용 이자부부채를 고치면 함께 바뀌고, 리스부채는 위 '리스부채 포함' 선택을 따릅니다. 단기금융상품 등 다른 금융자산은 빼지 않았습니다.</p>
     <p class="foot" style="margin:0">금액 단위 백만원. <b>적용 이자부부채</b>는 주석 확인 후 고칠 수 있고, <b>주가</b>(평가기준일 종가)를 넣으면 시가총액·시가 D/E·D/(D+E)가 다시 계산됩니다. 회사명을 누르면 넣은 계정과 출처가 보입니다.</p>
     <div id="capDetail" class="cap-detail"></div>
@@ -1267,29 +1272,29 @@ document.querySelectorAll('input[name="capMode"]').forEach(x => x.onchange = () 
 });
 function capRender(){
   const t = $("capTable"), r = cap.result;
-  if (!r){ $("capWarn").hidden = true; t.innerHTML = `<tbody><tr><td class="empty" style="white-space:normal">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 여기에 표가 나옵니다.</td></tr></tbody>`; $("capDetail").innerHTML = ""; $("capBasis").textContent = ""; $("btnCapXlsx").disabled = true; return; }
+  if (!r){ $("capWarn").hidden = true; t.innerHTML = `<tbody><tr><td class="empty" style="white-space:normal">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 여기에 표가 나옵니다.</td></tr></tbody>`; $("capDetail").innerHTML = ""; $("capSum").innerHTML = ""; $("capBasis").textContent = ""; $("btnCapXlsx").disabled = true; return; }
   $("capWarn").hidden = false;
   $("capBasis").textContent = `${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"}`;
-  const head = `<thead><tr><th>회사</th><th class="num">적용 이자부부채</th><th class="num">현금</th><th class="num">순차입금(*)</th><th class="num">부채총계</th><th class="num">자본총계</th><th class="num">부채비율</th><th class="num">장부가 D/E</th><th class="num">유통보통주식수</th><th class="num">주가(원)</th><th class="num">시가총액</th><th class="num">시가 D/E</th><th class="num">D/(D+E)</th></tr></thead>`;
+  const head = `<thead><tr><th>회사</th><th class="num">적용 이자부부채</th><th class="num">현금</th><th class="num">순차입금(*)</th><th class="num">부채총계</th><th class="num">자본총계</th><th class="num">비지배지분</th><th class="num">부채비율</th><th class="num">장부가 D/E</th><th class="num">자기주식수</th><th class="num">유통보통주식수</th><th class="num">주가(원)</th><th class="num">시가총액</th><th class="num">시가 D/E</th><th class="num">D/(D+E)</th></tr></thead>`;
   const rows = r.companies.map((c, i) => {
-    if (c.error) return `<tr class="err"><td>${esc(c.input)}</td><td colspan="13" style="white-space:normal">${esc(c.error)}</td></tr>`;
+    if (c.error) return `<tr class="err"><td>${esc(c.input)}</td><td colspan="14" style="white-space:normal">${esc(c.error)}</td></tr>`;
     const k = capRow(c), t0 = c.totals;
     const changed = (cap.over[c.corp_code] || {}).debt != null;
     return `<tr>
       <td><button class="co" type="button" data-open="${i}">${esc(c.corp_name || c.input)}</button>${c.interest_bearing_debt.approximate ? `<span class="flag" title="차입금이 금융부채로 묶여 있음">주석 확인</span>` : ""}${c.interest_bearing_debt.review_items.length ? `<span class="flag">검토 ${c.interest_bearing_debt.review_items.length}</span>` : ""}</td>
       <td class="num"><input type="text" inputmode="decimal" aria-label="${esc(c.corp_name)} 적용 이자부부채" data-debt="${c.corp_code}" value="${fmt(k.debtM)}" title="${changed ? "직접 고친 값 · 공시 합산 " + fmt(M(c.interest_bearing_debt.total)) : "공시 합산값"}" style="${changed ? "border-color:var(--warn)" : ""}"></td>
       <td class="num">${fmt(M(t0.cash))}</td><td class="num">${fmt(k.debtM - (M(t0.cash) || 0))}</td>
-      <td class="num">${fmt(M(t0.liabilities))}</td><td class="num">${fmt(M(t0.equity))}</td>
+      <td class="num">${fmt(M(t0.liabilities))}</td><td class="num">${fmt(M(t0.equity))}</td><td class="num">${t0.nci == null ? "–" : fmt(M(t0.nci))}</td>
       <td class="num">${fmt(c.ratios.debt_ratio_pct, 1)}%</td><td class="num">${fmt(k.bookDE, 1)}%</td>
-      <td class="num">${fmt(k.sh)}</td>
+      <td class="num">${fmt((c.shares.common || {}).treasury)}</td><td class="num">${fmt(k.sh)}</td>
       <td class="num"><input type="text" inputmode="numeric" aria-label="${esc(c.corp_name)} 주가" data-price="${c.corp_code}" value="${k.price ? fmt(k.price) : ""}" placeholder="입력"></td>
       <td class="num calc">${fmt(k.mcap)}</td><td class="num calc">${k.mktDE == null ? "–" : fmt(k.mktDE, 1) + "%"}</td><td class="num calc">${k.dv == null ? "–" : fmt(k.dv, 1) + "%"}</td></tr>`;
   }).join("");
   const ok = r.companies.filter(c => !c.error).map(capRow).filter(k => k.mktDE != null);
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const med = a => { if (!a.length) return null; const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
-  const foot = ok.length ? `<tfoot><tr><td colspan="12" style="text-align:right;color:var(--muted)">주가 넣은 ${ok.length}곳 평균 / 중앙값</td><td class="num calc">${fmt(avg(ok.map(k => k.mktDE)), 1)}% / ${fmt(med(ok.map(k => k.mktDE)), 1)}%</td><td class="num calc">${fmt(avg(ok.map(k => k.dv)), 1)}% / ${fmt(med(ok.map(k => k.dv)), 1)}%</td></tr></tfoot>` : "";
-  t.innerHTML = head + `<tbody>${rows}</tbody>` + foot;
+  $("capSum").innerHTML = ok.length ? `<span class="lbl">주가 넣은 ${ok.length}곳</span><span>시가 D/E 평균 <b>${fmt(avg(ok.map(k => k.mktDE)), 1)}%</b> · 중앙값 <b>${fmt(med(ok.map(k => k.mktDE)), 1)}%</b></span><span>D/(D+E) 평균 <b>${fmt(avg(ok.map(k => k.dv)), 1)}%</b> · 중앙값 <b>${fmt(med(ok.map(k => k.dv)), 1)}%</b></span>` : "";
+  t.innerHTML = head + `<tbody>${rows}</tbody>`;
   t.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { cap.open = +b.dataset.open === cap.open ? null : +b.dataset.open; capDetail(); });
   const num = s => { const v = String(s).replace(/[^0-9.\-]/g, ""); return v === "" ? null : Number(v); };
   t.querySelectorAll("[data-debt]").forEach(inp => inp.onchange = () => {
@@ -1355,28 +1360,29 @@ $("btnCapXlsx").onclick = async () => {
   st.textContent = "엑셀 만드는 중…";
   let X; try { X = await loadXLSX(); } catch { st.textContent = "엑셀 도구를 불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요."; return; }
   const cs = r.companies.filter(c => !c.error);
-  const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "부채비율(%)", "장부가 D/E(%)", "유통보통주식수", "주가(원)", "시가총액", "시가 D/E(%)", "D/(D+E)(%)", "주석 확인"];
+  const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "비지배지분", "부채비율(%)", "장부가 D/E(%)", "자기주식수", "유통보통주식수", "주가(원)", "시가총액", "시가 D/E(%)", "D/(D+E)(%)", "주석 확인"];
   const aoa = [[`대용기업 자본구조 · ${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"} · 단위 백만원(주식수·주가 제외)`], H];
   cs.forEach(c => { const k = capRow(c);
     aoa.push([c.corp_name, c.corp_code, c.basis, c.report, k.debtM, Math.round(M(c.interest_bearing_debt.total)), Math.round(M(c.totals.cash) || 0), null,
-              Math.round(M(c.totals.liabilities)), Math.round(M(c.totals.equity)), null, null, k.sh, k.price, null, null, null, c.interest_bearing_debt.approximate ? "Y" : ""]); });
+              Math.round(M(c.totals.liabilities)), Math.round(M(c.totals.equity)), c.totals.nci == null ? null : Math.round(M(c.totals.nci)), null, null,
+              (c.shares.common || {}).treasury ?? null, k.sh, k.price, null, null, null, c.interest_bearing_debt.approximate ? "Y" : ""]); });
   const ws = X.utils.aoa_to_sheet(aoa);
   cs.forEach((c, i) => { const R = i + 3;  // 엑셀 행 번호
     ws[`H${R}`] = {t: "n", f: `E${R}-G${R}`};
-    ws[`K${R}`] = {t: "n", f: `IFERROR(I${R}/J${R}*100,"")`};
-    ws[`L${R}`] = {t: "n", f: `IFERROR(E${R}/J${R}*100,"")`};
-    ws[`O${R}`] = {t: "n", f: `IF(N${R}="","",N${R}*M${R}/1000000)`};
-    ws[`P${R}`] = {t: "n", f: `IF(O${R}="","",E${R}/O${R}*100)`};
-    ws[`Q${R}`] = {t: "n", f: `IF(O${R}="","",E${R}/(E${R}+O${R})*100)`};
+    ws[`L${R}`] = {t: "n", f: `IFERROR(I${R}/J${R}*100,"")`};
+    ws[`M${R}`] = {t: "n", f: `IFERROR(E${R}/J${R}*100,"")`};
+    ws[`Q${R}`] = {t: "n", f: `IF(P${R}="","",P${R}*O${R}/1000000)`};
+    ws[`R${R}`] = {t: "n", f: `IF(Q${R}="","",E${R}/Q${R}*100)`};
+    ws[`S${R}`] = {t: "n", f: `IF(Q${R}="","",E${R}/(E${R}+Q${R})*100)`};
   });
   const last = cs.length + 2, sumR = last + 1;
   X.utils.sheet_add_aoa(ws, [["평균"]], {origin: `A${sumR}`}); X.utils.sheet_add_aoa(ws, [["중앙값"]], {origin: `A${sumR + 1}`});
-  for (const col of ["P", "Q"]){ ws[`${col}${sumR}`] = {t: "n", f: `IFERROR(AVERAGE(${col}3:${col}${last}),"")`}; ws[`${col}${sumR + 1}`] = {t: "n", f: `IFERROR(MEDIAN(${col}3:${col}${last}),"")`}; }
+  for (const col of ["R", "S"]){ ws[`${col}${sumR}`] = {t: "n", f: `IFERROR(AVERAGE(${col}3:${col}${last}),"")`}; ws[`${col}${sumR + 1}`] = {t: "n", f: `IFERROR(MEDIAN(${col}3:${col}${last}),"")`}; }
   X.utils.sheet_add_aoa(ws, [["(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산 (단기금융상품 등 다른 금융자산은 차감하지 않음)"]], {origin: `A${sumR + 3}`});
-  ws["!ref"] = `A1:R${sumR + 3}`;
-  ws["!cols"] = [{wch: 22}, {wch: 10}, {wch: 6}, {wch: 20}, ...Array(9).fill({wch: 13}), {wch: 10}, {wch: 13}, {wch: 11}, {wch: 11}, {wch: 8}];
-  for (let R = 3; R <= sumR + 1; R++) for (const col of "EFGHIJMNO") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
-  for (let R = 3; R <= sumR + 1; R++) for (const col of "KLPQ") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "0.0"; }
+  ws["!ref"] = `A1:T${sumR + 3}`;
+  ws["!cols"] = [{wch: 22}, {wch: 10}, {wch: 6}, {wch: 20}, ...Array(7).fill({wch: 13}), {wch: 11}, {wch: 11}, {wch: 13}, {wch: 14}, {wch: 10}, {wch: 13}, {wch: 11}, {wch: 11}, {wch: 8}];
+  for (let R = 3; R <= sumR + 1; R++) for (const col of "EFGHIJKNOPQ") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
+  for (let R = 3; R <= sumR + 1; R++) for (const col of "LMRS") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "0.0"; }
   const det = [["회사", "구분", "계정", "분류", "금액(백만원)"]];
   cs.forEach(c => { const d = c.interest_bearing_debt;
     d.items.forEach(i => det.push([c.corp_name, "합산", i.account, i.type, Math.round(M(i.amount))]));
