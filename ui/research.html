@@ -1366,10 +1366,16 @@ function metDetail(){
   if (!m || (!m.annual && !m.ltm)){ box.innerHTML = ""; return; }
   const a = m.annual || {}, l = m.ltm || {}, parts = l.parts, src = l.src || a.src || {};
   const f = v => v == null ? "–" : fmt(M(v));
+  const isLtm = !!parts || ["revenue", "operating_income", "net_income"].some(k => a[k] !== l[k]);
+  if (isLtm && !parts){
+    box.innerHTML = `<h3>${esc(c.corp_name)} · 주요 재무 지표 근거</h3><p class="cap-warn" style="font-weight:500">이 결과는 근거를 담기 전 버전으로 가져온 것이라 LTM 계산 근거가 없습니다. 위의 <b>DART에서 가져오기</b>를 다시 눌러 주세요.</p>`;
+    return;
+  }
+  const acct = (k, v) => src[k] || (v == null ? "찾지 못함" : "–");
   const keys = [["revenue", "매출액"], ["operating_income", "영업이익"], ["net_income", "당기순이익"], ["da", "감가상각비"], ["income_tax", "법인세비용"], ["ni_parent", "지배주주귀속순이익"]];
   const head = parts ? `<th class="num">${esc(a.label || "직전 연간")}</th><th class="num">+ ${esc(l.cur_label || "당기 누적")}</th><th class="num">− ${esc(l.prior_label || "전기 동기 누적")}</th><th class="num">= LTM</th>`
                      : `<th class="num">${esc(a.label || "연간")} (= LTM)</th>`;
-  const body = keys.map(([k, h]) => `<tr><td>${h}${k === "ni_parent" && l.ni_parent_is_total ? `<span class="flag">당기순이익</span>` : ""}</td><td style="white-space:normal;font-size:12px;color:var(--muted)">${esc(src[k] || "찾지 못함")}</td>${
+  const body = keys.map(([k, h]) => `<tr><td>${h}${k === "ni_parent" && l.ni_parent_is_total ? `<span class="flag">당기순이익</span>` : ""}</td><td style="white-space:normal;font-size:12px;color:var(--muted)">${esc(acct(k, parts ? l[k] : a[k]))}</td>${
     parts ? `<td class="num">${f(parts[k].annual)}</td><td class="num">${f(parts[k].cur)}</td><td class="num">${f(parts[k].prior)}</td><td class="num calc">${f(l[k])}</td>` : `<td class="num">${f(a[k])}</td>`}</tr>`).join("")
     + `<tr><td><b>EBITDA</b></td><td style="font-size:12px;color:var(--muted)">영업이익 + 감가상각비</td>${parts
       ? `<td class="num">${f(a.operating_income != null && a.da != null ? a.operating_income + a.da : null)}</td><td></td><td></td><td class="num calc">${f(l.operating_income != null && l.da != null ? l.operating_income + l.da : null)}</td>`
@@ -1412,8 +1418,7 @@ $("btnCap").onclick = async () => {
   $("btnCap").disabled = true; st.textContent = `${list.length}곳 조회 중… (최초로 조회하는 기업의 경우 수 초가 걸릴 수 있습니다)`;
   try {
     const args = {companies: list, consolidated: i.cons, include_lease: i.lease, include_metrics: !!i.wantMet, ...(i.mode === "fixed" ? {year: +i.year, period: i.period} : {period: "latest"})};
-    const r = await mcpNs.callTool(DART, "capital_structure", args,
-                                   {cache: {staleTime: 21600000, gcTime: 21600000}});
+    const r = await mcpNs.callTool(DART, "capital_structure", args, {cache: false});
     const p = r.payload || {};
     if (!Array.isArray(p.companies)) throw {code: "tool_error", message: "응답 형식이 예상과 다릅니다."};
     cap.result = p; cap.open = null; cap.metOpen = null;
