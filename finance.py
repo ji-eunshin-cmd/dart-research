@@ -212,16 +212,21 @@ def prior_ytd(r: dict) -> int | None:
     return amount(r.get("frmtrm_amount"))
 
 
-def _first(rows, ids, names, sj, get):
+def _first_row(rows, ids, names, sj, get):
+    """(금액, 공시 계정명). 표준 계정 ID 우선, 없으면 계정명."""
     cand = sorted([r for r in rows if r.get("sj_div") in sj], key=lambda r: (sj.index(r.get("sj_div")), int(r.get("ord") or 0) if str(r.get("ord") or "0").isdigit() else 0))
     for r in cand:
         if r.get("account_id") in ids and get(r) is not None:
-            return get(r)
+            return get(r), (r.get("account_nm") or "").strip()
     keys = [_key(n) for n in names]
     for r in cand:
         if _key(r.get("account_nm")) in keys and get(r) is not None:
-            return get(r)
-    return None
+            return get(r), (r.get("account_nm") or "").strip()
+    return None, None
+
+
+def _first(rows, ids, names, sj, get):
+    return _first_row(rows, ids, names, sj, get)[0]
 
 
 def _da(rows, get) -> tuple[int | None, list[dict], str | None]:
@@ -248,16 +253,15 @@ METRIC_LABELS = {"revenue": "매출액", "operating_income": "영업이익", "ne
 def metrics(rows: list[dict], get=ytd) -> dict:
     """한 보고서의 주요 재무 지표. get=ytd(당기 누적) 또는 prior_ytd(전기 동기 누적)."""
     pl = ("IS", "CIS")
-    out = {
-        "revenue": _first(rows, *TOTALS["revenue"], pl, get),
-        "operating_income": _first(rows, *TOTALS["operating_income"], pl, get),
-        "income_tax": _first(rows, *TOTALS["income_tax"], pl, get),
-        "net_income": _first(rows, *TOTALS["net_income"], pl, get),
-    }
-    nip = _first(rows, _NI_PARENT_IDS, _NI_PARENT_NAMES, pl, get)
+    out, src = {}, {}
+    for k in ("revenue", "operating_income", "net_income", "income_tax"):
+        out[k], src[k] = _first_row(rows, *TOTALS[k], pl, get)
+    nip, nm = _first_row(rows, _NI_PARENT_IDS, _NI_PARENT_NAMES, pl, get)
     out["ni_parent_is_total"] = nip is None  # 별도 재무제표 등 귀속 구분이 없으면 당기순이익을 씀
-    out["ni_parent"] = nip if nip is not None else out["net_income"]
+    out["ni_parent"], src["ni_parent"] = (nip, nm) if nip is not None else (out["net_income"], src["net_income"])
     out["da"], out["da_items"], out["da_source"] = _da(rows, get)
+    src["da"] = " + ".join(i["account"] for i in out["da_items"]) or None
+    out["src"] = src
     return out
 
 
@@ -270,5 +274,9 @@ def ltm(annual: dict, cur_ytd: dict, prior: dict) -> dict:
     out["da_items"] = [{"account": i["account"], "amount": None} for i in cur_ytd.get("da_items", [])]
     out["da_source"] = cur_ytd.get("da_source")
     out["ni_parent_is_total"] = annual.get("ni_parent_is_total") or cur_ytd.get("ni_parent_is_total")
+    # 계산 근거: 항목별 직전 연간·당기 누적·전기 동기 누적
+    out["parts"] = {k: {"annual": annual.get(k), "cur": cur_ytd.get(k), "prior": prior.get(k)} for k in METRIC_LABELS}
+    out["src"] = cur_ytd.get("src") or annual.get("src")
+    out["da_parts"] = {"annual": annual.get("da_items", []), "cur": cur_ytd.get("da_items", []), "prior": prior.get("da_items", [])}
     return out
 

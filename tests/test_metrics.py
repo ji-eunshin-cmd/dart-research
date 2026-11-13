@@ -52,6 +52,8 @@ def test_ltm():
     assert lt["operating_income"] == 100 + 95 - 70
     assert lt["ni_parent"] == 60 + 55 - 45 and lt["net_income"] == 70 + 65 - 52
     assert lt["da"] == 58 + 44 - 39
+    assert lt["parts"]["revenue"] == {"annual": 1000, "cur": 900, "prior": 750}
+    assert lt["src"]["ni_parent"] == "지배기업소유주지분" and lt["src"]["da"] == "감가상각비 + 무형자산상각비"
 
 
 def test_separate_statements_fall_back_to_net_income_and_missing_da():

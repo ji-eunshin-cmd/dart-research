@@ -136,14 +136,14 @@ table.cap th{position:sticky;top:0;background:var(--surface)}
 table.cap td.num,table.cap th.num{text-align:right;font-variant-numeric:tabular-nums}
 table.cap input{width:84px;padding:4px 6px;text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px}
 table.cap tr.err td{color:var(--bad)}
-table.cap button.co{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px}
+table.cap button.co,table.met button.co{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px}
 table.cap .calc{color:var(--accent);font-weight:500}
 .flag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin-left:6px;font-weight:500}
 .cap-detail:empty{display:none}
 .cap-sum:empty{display:none}
 table.met{table-layout:fixed;width:100%;min-width:780px}
 table.met th:first-child{width:22%}
-table.met th.num{text-align:right}
+table.met th.num,.cap-detail th.num{text-align:right}
 .cap-sum{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;align-items:baseline}
 .cap-sum .lbl{color:var(--muted)}
 .cap-sum b{font-variant-numeric:tabular-nums;color:var(--accent)}
@@ -319,7 +319,8 @@ table.fin .user{color:var(--muted);font-size:11px}
   <section class="step" aria-labelledby="c3h" id="capSecMet">
     <div class="step-h"><span class="n" id="capNoMet">3</span><h2 id="c3h">주요 재무 지표</h2><span class="aside">상대가치 평가용 benchmark · 단위 백만원</span></div>
     <div id="metBox"></div>
-    <p class="foot" style="margin:0">LTM = 직전 사업연도 + 최근 보고서 당기 누적 − 전기 동기 누적. 최근 공시가 사업보고서인 회사는 LTM과 연간이 같습니다. 감가상각비는 현금흐름표의 감가상각비·무형자산상각비·사용권자산상각비 합계이고, 본문에 없는 회사는 주석에서 확인하세요. EBITDA = 영업이익 + 감가상각비. 회사명에 마우스를 올리면 계산에 쓴 보고서가 보입니다. 지배주주귀속순이익이 따로 없는 회사(별도 재무제표 등)는 당기순이익을 넣고 표시합니다.</p>
+    <div id="metDetail" class="cap-detail"></div>
+    <p class="foot" style="margin:0">LTM = 직전 사업연도 + 최근 보고서 당기 누적 − 전기 동기 누적. 최근 공시가 사업보고서인 회사는 LTM과 연간이 같습니다. 감가상각비는 현금흐름표의 감가상각비·무형자산상각비·사용권자산상각비 합계이고, 본문에 없는 회사는 주석에서 확인하세요. EBITDA = 영업이익 + 감가상각비. 회사명을 누르면 항목별 공시 계정과 LTM 계산 근거가 보입니다. 지배주주귀속순이익이 따로 없는 회사(별도 재무제표 등)는 당기순이익을 넣고 표시합니다.</p>
   </section>
   <div class="actions"><button class="btn" id="btnCapXlsx" type="button">엑셀로 내려받기</button><span class="status" id="capSaveStatus"></span></div>
   </div>
@@ -1199,7 +1200,7 @@ window.addEventListener("hashchange", () => { const h = fromHash(); if (h){ $("r
 
 // ======================= 대용기업 자본구조 =======================
 const CAP_KEY = "rb-capital-v1";
-const cap = {inputs: null, result: null, over: {}, open: null, isExample: false};
+const cap = {inputs: null, result: null, over: {}, open: null, metOpen: null, isExample: false};
 const M = v => v == null ? null : v / 1e6;
 const fmt = (v, d = 0) => v == null || !isFinite(v) ? "–" : Number(v).toLocaleString("ko-KR", {maximumFractionDigits: d, minimumFractionDigits: d});
 function capRow(c){
@@ -1342,18 +1343,46 @@ function metTable(kind, title){
   const r = cap.result, cs = r.companies.filter(c => !c.error);
   const head = `<thead><tr><th>회사</th>${MET_COLS.map(([, h]) => `<th class="num">${h}</th>`).join("")}</tr></thead>`;
   const rows = cs.map(c => {
-    const v = metVals(c.metrics && c.metrics[kind]);
+    const v = metVals(c.metrics && c.metrics[kind]), idx = r.companies.indexOf(c);
     if (!v) return `<tr><td>${esc(c.corp_name)}</td><td colspan="${MET_COLS.length}" style="white-space:normal;color:var(--muted)">${esc(((c.metrics || {}).notes || [])[0] || "주요 재무 지표가 없습니다. '주요 재무 지표'를 선택하고 다시 가져와 주세요.")}</td></tr>`;
-    return `<tr><td title="${esc(v.label)}">${esc(c.corp_name)}${v.da == null ? `<span class="flag">감가상각비 주석 확인</span>` : ""}</td>${MET_COLS.map(([k]) =>
+    return `<tr><td title="${esc(v.label)}"><button class="co" type="button" data-mopen="${idx}">${esc(c.corp_name)}</button>${v.da == null ? `<span class="flag">감가상각비 주석 확인</span>` : ""}</td>${MET_COLS.map(([k]) =>
       `<td class="num${k === "ebitda" ? " calc" : ""}">${fmt(v[k])}${k === "ni_parent" && v.niTotal ? `<span class="flag" title="지배주주 귀속 구분이 없어 당기순이익">순이익</span>` : ""}</td>`).join("")}</tr>`;
   }).join("");
   return `<h3 style="margin:4px 0 0;font-size:14px">${title}</h3><div class="tbl-wrap"><table class="t met">${head}<tbody>${rows}</tbody></table></div>`;
 }
 function metRender(){
   const box = $("metBox"), r = cap.result;
-  if (!r || !r.companies.some(c => !c.error)){ box.innerHTML = `<p class="foot" style="margin:0">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 LTM과 직전 연간 숫자가 함께 나옵니다.</p>`; return; }
+  if (!r || !r.companies.some(c => !c.error)){ box.innerHTML = `<p class="foot" style="margin:0">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 LTM과 직전 연간 숫자가 함께 나옵니다.</p>`; $("metDetail").innerHTML = ""; return; }
   if (!r.companies.some(c => c.metrics)){ box.innerHTML = `<p class="foot" style="margin:0">이번 조회에는 주요 재무 지표가 없습니다. <b>DART에서 가져오기</b>를 다시 눌러 주세요.</p>`; return; }
   box.innerHTML = metTable("ltm", "LTM") + metTable("annual", "직전 연간");
+  box.querySelectorAll("[data-mopen]").forEach(b => b.onclick = () => { cap.metOpen = +b.dataset.mopen === cap.metOpen ? null : +b.dataset.mopen; metDetail(); });
+  metDetail();
+}
+// 회사명을 누르면: 항목별 공시 계정과 LTM 계산 근거(직전 연간 + 당기 누적 − 전기 동기 누적)
+function metDetail(){
+  const box = $("metDetail"), r = cap.result;
+  const c = r && cap.metOpen != null ? r.companies[cap.metOpen] : null;
+  const m = c && c.metrics;
+  if (!m || (!m.annual && !m.ltm)){ box.innerHTML = ""; return; }
+  const a = m.annual || {}, l = m.ltm || {}, parts = l.parts, src = l.src || a.src || {};
+  const f = v => v == null ? "–" : fmt(M(v));
+  const keys = [["revenue", "매출액"], ["operating_income", "영업이익"], ["net_income", "당기순이익"], ["da", "감가상각비"], ["income_tax", "법인세비용"], ["ni_parent", "지배주주귀속순이익"]];
+  const head = parts ? `<th class="num">${esc(a.label || "직전 연간")}</th><th class="num">+ ${esc(l.cur_label || "당기 누적")}</th><th class="num">− ${esc(l.prior_label || "전기 동기 누적")}</th><th class="num">= LTM</th>`
+                     : `<th class="num">${esc(a.label || "연간")} (= LTM)</th>`;
+  const body = keys.map(([k, h]) => `<tr><td>${h}${k === "ni_parent" && l.ni_parent_is_total ? `<span class="flag">당기순이익</span>` : ""}</td><td style="white-space:normal;font-size:12px;color:var(--muted)">${esc(src[k] || "찾지 못함")}</td>${
+    parts ? `<td class="num">${f(parts[k].annual)}</td><td class="num">${f(parts[k].cur)}</td><td class="num">${f(parts[k].prior)}</td><td class="num calc">${f(l[k])}</td>` : `<td class="num">${f(a[k])}</td>`}</tr>`).join("")
+    + `<tr><td><b>EBITDA</b></td><td style="font-size:12px;color:var(--muted)">영업이익 + 감가상각비</td>${parts
+      ? `<td class="num">${f(a.operating_income != null && a.da != null ? a.operating_income + a.da : null)}</td><td></td><td></td><td class="num calc">${f(l.operating_income != null && l.da != null ? l.operating_income + l.da : null)}</td>`
+      : `<td class="num">${f(a.operating_income != null && a.da != null ? a.operating_income + a.da : null)}</td>`}</tr>`;
+  const daList = (title, items) => items && items.length ? `<div><b>${esc(title)}</b><ul class="issue-list">${items.map(i => `<li>${esc(i.account)}${i.amount != null ? " " + f(i.amount) + "백만원" : ""}</li>`).join("")}</ul></div>` : "";
+  const dp = l.da_parts;
+  const links = [a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">직전 사업보고서</a>` : "", c.url && parts ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">최근 보고서(${esc(c.report)})</a>` : (c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">DART 원문</a>` : "")].filter(Boolean).join(" · ");
+  box.innerHTML = `<h3>${esc(c.corp_name)} · 주요 재무 지표 근거 (${esc(c.basis)}) <span style="font-size:12px;font-weight:400">${links}</span></h3>
+    <div class="tbl-wrap"><table class="t"><thead><tr><th>항목</th><th>공시 계정</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    ${dp ? daList(`감가상각비 · ${a.label || "직전 연간"} (${a.da_source || ""})`, dp.annual) + daList(`감가상각비 · ${l.cur_label || "당기 누적"}`, dp.cur) + daList(`감가상각비 · ${l.prior_label || "전기 동기 누적"}`, dp.prior)
+         : daList(`감가상각비 · ${a.label || "연간"} (${a.da_source || ""})`, a.da_items)}
+    ${(m.notes || []).length ? `<ul class="issue-list">${m.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    <div class="foot">단위 백만원. 회사명을 다시 누르면 닫힙니다.</div>`;
 }
 function capDetail(){
   const box = $("capDetail"), r = cap.result;
@@ -1387,7 +1416,7 @@ $("btnCap").onclick = async () => {
                                    {cache: {staleTime: 21600000, gcTime: 21600000}});
     const p = r.payload || {};
     if (!Array.isArray(p.companies)) throw {code: "tool_error", message: "응답 형식이 예상과 다릅니다."};
-    cap.result = p; cap.open = null;
+    cap.result = p; cap.open = null; cap.metOpen = null;
     const bad = p.companies.filter(c => c.error).length, flag = p.companies.filter(c => !c.error && c.interest_bearing_debt.approximate).length;
     st.textContent = `${p.companies.length - bad}곳 완료` + (bad ? ` · ${bad}곳 실패(표에 사유)` : "") + (flag ? ` · ${flag}곳 주석 확인 필요` : "");
     capRender(); capSave();

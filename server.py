@@ -286,8 +286,10 @@ async def _metrics_for(c: DartClient, code: str, rows: list[dict], fs: str, year
     lt = ltm(a, cy, py)
     if a.get("da") is None or cy.get("da") is None:
         notes.append("감가상각비가 재무제표 본문에 없습니다. 주석(유형·무형·사용권자산 변동)에서 확인하세요.")
-    return {"annual": {"label": f"{year - 1} 연간", **a},
-            "ltm": {"label": f"LTM ({year - 1} 연간 + {year} {PERIOD_KO[period]} 누적 − {year - 1} 동기 누적)", **lt}, "notes": notes}
+    rno = (arows[0].get("rcept_no") if arows else "") or ""
+    return {"annual": {"label": f"{year - 1} 연간", "rcept_no": rno, "url": VIEWER.format(rno) if rno else None, **a},
+            "ltm": {"label": f"LTM ({year - 1} 연간 + {year} {PERIOD_KO[period]} 누적 − {year - 1} 동기 누적)",
+                    "cur_label": f"{year} {PERIOD_KO[period]} 누적", "prior_label": f"{year - 1} 동기 누적", **lt}, "notes": notes}
 
 
 async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, consolidated: bool, include_lease: bool,
