@@ -187,3 +187,86 @@ def compact_statements(rows: list[dict], statements: list[str]) -> list[dict]:
                     **({"prior2": amount(r.get("bfefrmtrm_amount"))} if r.get("bfefrmtrm_amount") not in (None, "") else {})})
     out.sort(key=lambda x: (x["st"], x["ord"]))  # 공시 화면의 표시 순서 (ord)
     return out
+
+
+# ── 상대가치 평가용 주요 재무 지표 (매출액·감가상각비·영업이익·법인세비용·지배주주귀속순이익) ──────────────
+_NI_PARENT_IDS = ["ifrs-full_ProfitLossAttributableToOwnersOfParent"]
+_NI_PARENT_NAMES = ["지배기업의소유주에게귀속되는당기순이익", "지배기업의소유주에게귀속되는당기순이익(손실)", "지배기업소유주지분순이익",
+                    "지배기업의소유주지분", "지배기업소유주지분", "지배기업소유주", "지배주주지분", "지배주주순이익"]
+_DA_IDS = {"ifrs-full_AdjustmentsForDepreciationExpense", "ifrs-full_AdjustmentsForAmortisationExpense",
+           "ifrs-full_AdjustmentsForDepreciationAndAmortisationExpense", "ifrs-full_DepreciationAndAmortisationExpense",
+           "ifrs-full_DepreciationExpense", "ifrs-full_AmortisationExpense", "ifrs-full_DepreciationRightofuseAssets"}
+_DA_NAME = re.compile(r"감가상각비|상각비")
+_DA_SKIP = re.compile(r"대손|손상|환입|처분|평가|사채|할인|할증|현재가치|이연|충당")
+
+
+def ytd(r: dict) -> int | None:
+    """당기 누적(분기·반기 손익은 누적, 현금흐름표는 원래 누적)."""
+    return cur(r)
+
+
+def prior_ytd(r: dict) -> int | None:
+    """전기 같은 기간 누적."""
+    if r.get("sj_div") in ("IS", "CIS") and r.get("frmtrm_add_amount") not in (None, "", "-"):
+        return amount(r.get("frmtrm_add_amount"))
+    return amount(r.get("frmtrm_amount"))
+
+
+def _first(rows, ids, names, sj, get):
+    cand = sorted([r for r in rows if r.get("sj_div") in sj], key=lambda r: (sj.index(r.get("sj_div")), int(r.get("ord") or 0) if str(r.get("ord") or "0").isdigit() else 0))
+    for r in cand:
+        if r.get("account_id") in ids and get(r) is not None:
+            return get(r)
+    keys = [_key(n) for n in names]
+    for r in cand:
+        if _key(r.get("account_nm")) in keys and get(r) is not None:
+            return get(r)
+    return None
+
+
+def _da(rows, get) -> tuple[int | None, list[dict], str | None]:
+    """감가상각비(무형자산·사용권자산 상각 포함). 현금흐름표 조정 항목에서 찾고, 없으면 손익계산서(성격별 표시)에서 찾음."""
+    for sj in (("CF",), ("IS", "CIS")):
+        items = []
+        for r in rows:
+            if r.get("sj_div") not in sj:
+                continue
+            nm = _key(r.get("account_nm"))
+            if (r.get("account_id") in _DA_IDS or _DA_NAME.search(nm)) and not _DA_SKIP.search(nm):
+                v = get(r)
+                if v is not None:
+                    items.append({"account": (r.get("account_nm") or "").strip(), "amount": abs(v)})
+        if items:
+            return sum(i["amount"] for i in items), items, "현금흐름표" if sj == ("CF",) else "손익계산서"
+    return None, [], None
+
+
+METRIC_LABELS = {"revenue": "매출액", "da": "감가상각비", "operating_income": "영업이익", "income_tax": "법인세비용", "ni_parent": "지배주주귀속순이익"}
+
+
+def metrics(rows: list[dict], get=ytd) -> dict:
+    """한 보고서의 주요 재무 지표. get=ytd(당기 누적) 또는 prior_ytd(전기 동기 누적)."""
+    pl = ("IS", "CIS")
+    out = {
+        "revenue": _first(rows, *TOTALS["revenue"], pl, get),
+        "operating_income": _first(rows, *TOTALS["operating_income"], pl, get),
+        "income_tax": _first(rows, *TOTALS["income_tax"], pl, get),
+    }
+    nip = _first(rows, _NI_PARENT_IDS, _NI_PARENT_NAMES, pl, get)
+    out["ni_parent_is_total"] = nip is None  # 별도 재무제표 등 귀속 구분이 없으면 당기순이익을 씀
+    out["ni_parent"] = nip if nip is not None else _first(rows, *TOTALS["net_income"], pl, get)
+    out["da"], out["da_items"], out["da_source"] = _da(rows, get)
+    return out
+
+
+def ltm(annual: dict, cur_ytd: dict, prior: dict) -> dict:
+    """LTM = 직전 연간 + 당기 누적 − 전기 동기 누적 (하나라도 없으면 None)."""
+    out = {}
+    for k in METRIC_LABELS:
+        a, c_, p = annual.get(k), cur_ytd.get(k), prior.get(k)
+        out[k] = a + c_ - p if None not in (a, c_, p) else None
+    out["da_items"] = [{"account": i["account"], "amount": None} for i in cur_ytd.get("da_items", [])]
+    out["da_source"] = cur_ytd.get("da_source")
+    out["ni_parent_is_total"] = annual.get("ni_parent_is_total") or cur_ytd.get("ni_parent_is_total")
+    return out
+

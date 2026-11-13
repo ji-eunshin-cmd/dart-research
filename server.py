@@ -28,7 +28,7 @@ import asyncio
 import httpx
 
 from dart_client import VIEWER, DartClient, DartError
-from finance import PERIOD_KO, PERIODS, compact_statements, summarize
+from finance import PERIOD_KO, PERIODS, compact_statements, ltm, metrics, prior_ytd, summarize, ytd
 from sections import parse, pick_annual, pick_audit
 from webpage import PageError, fetch as fetch_page
 
@@ -270,7 +270,28 @@ async def _latest(c: DartClient, code: str, consolidated: bool) -> tuple[list[di
     raise ToolError("최근 정기보고서의 XBRL 재무제표를 찾지 못했습니다" + (f"(확인한 보고서: {', '.join(tried)})" if tried else "(최근 1년 반 정기공시 없음)") + ".")
 
 
-async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, consolidated: bool, include_lease: bool) -> dict:
+async def _metrics_for(c: DartClient, code: str, rows: list[dict], fs: str, year: int, period: str, consolidated: bool) -> dict:
+    """상대가치 평가용 주요 재무 지표: 직전 연간과 LTM(직전 연간 + 당기 누적 − 전기 동기 누적)."""
+    notes = []
+    if period == "annual":
+        a = metrics(rows)
+        return {"annual": {"label": f"{year} 연간", **a}, "ltm": {"label": f"{year} 연간 (최근 보고서가 사업보고서)", **a}, "notes": notes}
+    try:
+        arows, afs, _ = await _statements(c, code, year - 1, "annual", consolidated)
+    except ToolError:
+        return {"annual": None, "ltm": None, "notes": [f"{year - 1}년 사업보고서 재무제표가 없어 연간·LTM을 계산하지 못했습니다."]}
+    if afs != fs:
+        notes.append(f"연간은 {'연결' if afs == 'CFS' else '별도'}, 최근 보고서는 {'연결' if fs == 'CFS' else '별도'} 기준이라 LTM이 섞였습니다.")
+    a, cy, py = metrics(arows), metrics(rows, ytd), metrics(rows, prior_ytd)
+    lt = ltm(a, cy, py)
+    if a.get("da") is None or cy.get("da") is None:
+        notes.append("감가상각비가 재무제표 본문에 없습니다. 주석(유형·무형·사용권자산 변동)에서 확인하세요.")
+    return {"annual": {"label": f"{year - 1} 연간", **a},
+            "ltm": {"label": f"LTM ({year - 1} 연간 + {year} {PERIOD_KO[period]} 누적 − {year - 1} 동기 누적)", **lt}, "notes": notes}
+
+
+async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, consolidated: bool, include_lease: bool,
+                       include_metrics: bool = True) -> dict:
     try:
         code, name, note = await _resolve(c, ref)
         if not code:
@@ -297,11 +318,17 @@ async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, c
             notes.append("review_items의 조정·우선주·파생 계정은 합산하지 않았습니다. 필요하면 반영하세요.")
         if s["totals"]["equity"] is None:
             notes.append("자본총계 계정을 찾지 못했습니다. rows로 직접 확인하세요.")
+        mets = None
+        if include_metrics:
+            try:
+                mets = await _metrics_for(c, code, rows, fs, year, period, consolidated)
+            except DartError as e:
+                mets = {"annual": None, "ltm": None, "notes": [f"주요 재무 지표를 가져오지 못했습니다: {e}"]}
         rno = rows[0].get("rcept_no", "")
         return {"input": ref, "corp_code": code, "corp_name": name or rows[0].get("corp_name", ""), "basis": "연결" if fs == "CFS" else "별도",
                 "report": f"{year} {PERIOD_KO[period]}", "year": year, "period": period,
                 "filed": f"{filed[:4]}-{filed[4:6]}-{filed[6:8]}" if filed else None, "rcept_no": rno, "url": VIEWER.format(rno) if rno else None, "unit": "원",
-                **s, "shares": shares, "notes": [n for n in [note, *notes] if n]}
+                **s, "shares": shares, "metrics": mets, "notes": [n for n in [note, *notes] if n]}
     except ToolError as e:
         return {"input": ref, "error": str(e)}
     except DartError as e:
@@ -310,9 +337,11 @@ async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, c
 
 @mcp.tool(annotations=READ)
 async def capital_structure(companies: list[str], year: int | None = None, period: str = "latest", consolidated: bool = True,
-                            include_lease: bool = True) -> dict:
+                            include_lease: bool = True, include_metrics: bool = True) -> dict:
     """WACC 대용기업용: 여러 회사(최대 15곳, 회사명 또는 고유번호)의 공시 재무제표에서 이자부부채(단기·유동성장기·장기차입금, 사채, 기업어음, 리스부채 선택)를
     계정 근거와 함께 합산하고 현금, 순차입금, 부채총계, 자본총계, 비지배지분, 부채비율, 장부가 D/E, 유효세율, 금융원가, 발행·자기·유통 보통주식수를 돌려줍니다.
+    include_metrics=True(기본)면 상대가치 평가용 주요 재무 지표(매출액, 감가상각비(무형·사용권자산 상각 포함), 영업이익, 법인세비용, 지배주주귀속순이익)를
+    직전 연간과 LTM(직전 연간 + 당기 누적 − 전기 동기 누적)으로 companies[].metrics에 함께 돌려줍니다.
     period='latest'(기본)면 회사마다 오늘 기준 가장 최근에 공시된 정기보고서(사업·반기·분기)를 골라 쓰고 year는 무시합니다.
     순차입금 = 이자부부채(리스 포함 여부는 include_lease) − 현금및현금성자산.
     시가 D/E는 이자부부채 ÷ (평가기준일 주가 × 유통주식수)로 계산하세요(주가는 이 도구에 없음). 금액 단위 원."""
@@ -328,7 +357,7 @@ async def capital_structure(companies: list[str], year: int | None = None, perio
 
     async def run(ref):
         async with sem:
-            return await _one_capital(c, ref, year, period, consolidated, include_lease)
+            return await _one_capital(c, ref, year, period, consolidated, include_lease, include_metrics)
 
     results = await asyncio.gather(*(run(r) for r in refs))
     table = []

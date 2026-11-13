@@ -273,6 +273,9 @@ def test_capital_structure_debt_classification(http):
     assert "찾지 못했습니다" in b["companies"][2]["error"]
     row = b["summary_table"][0]
     assert row["이자부부채_백만원"] == 97_000 and row["장부가DE_%"] == 48.5 and row["유통보통주식수"] == 9_500_000
+    m = a["metrics"]
+    assert m["annual"]["label"] == "2025 연간" and m["annual"]["revenue"] == 123_400_000_000 and m["ltm"]["revenue"] == 123_400_000_000
+    assert m["annual"]["income_tax"] == 4_400_000_000 and m["annual"]["da"] is None
 
 
 def test_capital_structure_without_lease(http):
