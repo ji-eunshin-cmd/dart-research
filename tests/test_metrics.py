@@ -29,6 +29,7 @@ Q3 = [
     R("IS", "ifrs-full_Revenue", "매출액", "300", "250", add="900", prior_add="750"),
     R("IS", "dart_OperatingIncomeLoss", "영업이익", "30", "20", add="95", prior_add="70"),
     R("IS", "ifrs-full_IncomeTaxExpenseContinuingOperations", "법인세비용", "5", "4", add="18", prior_add="15"),
+    R("IS", "ifrs-full_ProfitLoss", "분기순이익", "25", "18", add="65", prior_add="52"),
     R("IS", "ifrs-full_ProfitLossAttributableToOwnersOfParent", "지배기업소유주지분", "20", "15", add="55", prior_add="45"),
     R("CF", "ifrs-full_AdjustmentsForDepreciationExpense", "감가상각비", "40", "36"),
     R("CF", "-표준계정코드 미사용-", "무형자산상각비", "4", "3"),
@@ -37,7 +38,7 @@ Q3 = [
 
 def test_annual_metrics_and_da_items():
     m = metrics(ANNUAL)
-    assert (m["revenue"], m["operating_income"], m["income_tax"], m["ni_parent"]) == (1000, 100, 20, 60)
+    assert (m["revenue"], m["operating_income"], m["income_tax"], m["ni_parent"], m["net_income"]) == (1000, 100, 20, 60, 70)
     assert m["da"] == 58 and m["da_source"] == "현금흐름표"
     assert [i["account"] for i in m["da_items"]] == ["감가상각비", "무형자산상각비", "사용권자산상각비"]  # 대손·손상 제외
     assert m["ni_parent_is_total"] is False
@@ -49,7 +50,7 @@ def test_ltm():
     lt = ltm(a, c, p)
     assert lt["revenue"] == 1000 + 900 - 750
     assert lt["operating_income"] == 100 + 95 - 70
-    assert lt["ni_parent"] == 60 + 55 - 45
+    assert lt["ni_parent"] == 60 + 55 - 45 and lt["net_income"] == 70 + 65 - 52
     assert lt["da"] == 58 + 44 - 39
 
 

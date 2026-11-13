@@ -241,7 +241,8 @@ def _da(rows, get) -> tuple[int | None, list[dict], str | None]:
     return None, [], None
 
 
-METRIC_LABELS = {"revenue": "매출액", "da": "감가상각비", "operating_income": "영업이익", "income_tax": "법인세비용", "ni_parent": "지배주주귀속순이익"}
+METRIC_LABELS = {"revenue": "매출액", "operating_income": "영업이익", "net_income": "당기순이익", "da": "감가상각비",
+                 "income_tax": "법인세비용", "ni_parent": "지배주주귀속순이익"}
 
 
 def metrics(rows: list[dict], get=ytd) -> dict:
@@ -251,10 +252,11 @@ def metrics(rows: list[dict], get=ytd) -> dict:
         "revenue": _first(rows, *TOTALS["revenue"], pl, get),
         "operating_income": _first(rows, *TOTALS["operating_income"], pl, get),
         "income_tax": _first(rows, *TOTALS["income_tax"], pl, get),
+        "net_income": _first(rows, *TOTALS["net_income"], pl, get),
     }
     nip = _first(rows, _NI_PARENT_IDS, _NI_PARENT_NAMES, pl, get)
     out["ni_parent_is_total"] = nip is None  # 별도 재무제표 등 귀속 구분이 없으면 당기순이익을 씀
-    out["ni_parent"] = nip if nip is not None else _first(rows, *TOTALS["net_income"], pl, get)
+    out["ni_parent"] = nip if nip is not None else out["net_income"]
     out["da"], out["da_items"], out["da_source"] = _da(rows, get)
     return out
 

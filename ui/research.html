@@ -142,8 +142,7 @@ table.cap .calc{color:var(--accent);font-weight:500}
 .cap-detail:empty{display:none}
 .cap-sum:empty{display:none}
 table.met{table-layout:fixed;width:100%;min-width:780px}
-table.met th:first-child{width:15%}
-table.met th:nth-child(2){width:25%}
+table.met th:first-child{width:22%}
 table.met th.num{text-align:right}
 .cap-sum{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;align-items:baseline}
 .cap-sum .lbl{color:var(--muted)}
@@ -297,14 +296,19 @@ table.fin .user{color:var(--muted);font-size:11px}
         <select id="capPeriod" aria-label="보고서"><option value="annual">사업보고서 (연간)</option><option value="q3">3분기보고서</option><option value="half">반기보고서</option><option value="q1">1분기보고서</option></select></span>
     </div>
     <div class="cap-opts">
+      <span class="lnk-h">검색 대상</span>
+      <label class="chk"><input type="checkbox" id="capWantCap" checked> 자본구조</label>
+      <label class="chk"><input type="checkbox" id="capWantMet"> 주요 재무 지표</label>
+    </div>
+    <div class="cap-opts">
       <span class="lnk-h">조회 기준</span>
       <label class="chk"><input type="checkbox" id="capCons" checked> 연결 우선 (없으면 별도)</label>
       <label class="chk"><input type="checkbox" id="capLease" checked> 리스부채 포함</label>
     </div>
     <div class="actions"><button class="btn" id="btnCap" type="button">DART에서 가져오기</button><span class="status" id="capStatus"></span></div>
   </section>
-  <section class="step" aria-labelledby="c2h">
-    <div class="step-h"><span class="n">2</span><h2 id="c2h">자본구조</h2><span class="aside" id="capBasis"></span></div>
+  <section class="step" aria-labelledby="c2h" id="capSecCap">
+    <div class="step-h"><span class="n" id="capNoCap">2</span><h2 id="c2h">자본구조</h2><span class="aside" id="capBasis"></span></div>
     <p class="cap-warn" id="capWarn" hidden>회사명을 클릭하여 DART 원문과 반드시 대조·검토하세요.</p>
     <div class="tbl-wrap"><table class="t cap" id="capTable"></table></div>
     <div class="cap-sum" id="capSum" aria-live="polite"></div>
@@ -312,12 +316,12 @@ table.fin .user{color:var(--muted);font-size:11px}
     <p class="foot" style="margin:0">금액 단위 백만원. <b>적용 이자부부채</b>는 주석 확인 후 고칠 수 있고, <b>주가</b>(평가기준일 종가)를 넣으면 시가총액과 Debt / Equity(= 이자부부채 ÷ (시가총액 + 비지배지분))가 계산됩니다. 회사명을 누르면 넣은 계정과 출처가 보입니다.</p>
     <div id="capDetail" class="cap-detail"></div>
   </section>
-  <section class="step" aria-labelledby="c3h">
-    <div class="step-h"><span class="n">3</span><h2 id="c3h">주요 재무 지표</h2><span class="aside">상대가치 평가용 benchmark · 단위 백만원</span></div>
-    <div id="metBox"><p class="foot" style="margin:0">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 LTM과 직전 연간 숫자가 함께 나옵니다.</p></div>
-    <p class="foot" style="margin:0">LTM = 직전 사업연도 + 최근 보고서 당기 누적 − 전기 동기 누적. 최근 공시가 사업보고서인 회사는 LTM과 연간이 같습니다. 감가상각비는 현금흐름표의 감가상각비·무형자산상각비·사용권자산상각비 합계이고, 본문에 없는 회사는 주석에서 확인하세요. EBITDA = 영업이익 + 감가상각비. 지배주주귀속순이익이 따로 없는 회사(별도 재무제표 등)는 당기순이익을 넣고 표시합니다.</p>
-    <div class="actions"><button class="btn" id="btnCapXlsx" type="button">엑셀로 내려받기</button><span class="status" id="capSaveStatus"></span></div>
+  <section class="step" aria-labelledby="c3h" id="capSecMet">
+    <div class="step-h"><span class="n" id="capNoMet">3</span><h2 id="c3h">주요 재무 지표</h2><span class="aside">상대가치 평가용 benchmark · 단위 백만원</span></div>
+    <div id="metBox"></div>
+    <p class="foot" style="margin:0">LTM = 직전 사업연도 + 최근 보고서 당기 누적 − 전기 동기 누적. 최근 공시가 사업보고서인 회사는 LTM과 연간이 같습니다. 감가상각비는 현금흐름표의 감가상각비·무형자산상각비·사용권자산상각비 합계이고, 본문에 없는 회사는 주석에서 확인하세요. EBITDA = 영업이익 + 감가상각비. 회사명에 마우스를 올리면 계산에 쓴 보고서가 보입니다. 지배주주귀속순이익이 따로 없는 회사(별도 재무제표 등)는 당기순이익을 넣고 표시합니다.</p>
   </section>
+  <div class="actions"><button class="btn" id="btnCapXlsx" type="button">엑셀로 내려받기</button><span class="status" id="capSaveStatus"></span></div>
   </div>
 </div>
 
@@ -1216,7 +1220,13 @@ let capHitsState = [];
 function capMode(){ return (document.querySelector('input[name="capMode"]:checked') || {}).value || "latest"; }
 function capInputs(){
   return {rows: capRowsState.map(r => ({code: r.code, name: r.name, listed: r.listed, stock_code: r.stock_code})), mode: capMode(), year: $("capYear").value.trim(),
-          period: $("capPeriod").value, cons: $("capCons").checked, lease: $("capLease").checked};
+          period: $("capPeriod").value, cons: $("capCons").checked, lease: $("capLease").checked,
+          wantCap: $("capWantCap").checked, wantMet: $("capWantMet").checked};
+}
+function capTargets(){
+  const c = $("capWantCap").checked, m = $("capWantMet").checked;
+  $("capSecCap").hidden = !c; $("capSecMet").hidden = !m;
+  $("capNoCap").textContent = "2"; $("capNoMet").textContent = c ? "3" : "2";
 }
 function capApplyInputs(i){
   i = i || {};
@@ -1228,6 +1238,8 @@ function capApplyInputs(i){
   $("capFixed").hidden = mode !== "fixed";
   $("capYear").value = i.year || String(new Date().getFullYear() - 1);
   $("capPeriod").value = i.period || "annual"; $("capCons").checked = i.cons !== false; $("capLease").checked = i.lease !== false;
+  $("capWantCap").checked = i.wantCap !== false; $("capWantMet").checked = !!i.wantMet;
+  capTargets();
   capRowsRender();
 }
 function capRowsRender(){
@@ -1319,20 +1331,20 @@ function capRender(){
   metRender();
 }
 // 3 주요 재무 지표: LTM 표와 직전 연간 표
-const MET_COLS = [["revenue", "매출액"], ["da", "감가상각비"], ["operating_income", "영업이익"], ["ebitda", "EBITDA"], ["income_tax", "법인세비용"], ["ni_parent", "지배주주귀속순이익"]];
+const MET_COLS = [["revenue", "매출액"], ["operating_income", "영업이익"], ["net_income", "당기순이익"], ["da", "감가상각비"], ["ebitda", "EBITDA"], ["income_tax", "법인세비용"], ["ni_parent", "지배주주귀속순이익"]];
 function metVals(m){
   if (!m) return null;
   const v = k => m[k] == null ? null : M(m[k]);
-  return {revenue: v("revenue"), da: v("da"), operating_income: v("operating_income"), income_tax: v("income_tax"), ni_parent: v("ni_parent"),
+  return {revenue: v("revenue"), da: v("da"), operating_income: v("operating_income"), net_income: v("net_income"), income_tax: v("income_tax"), ni_parent: v("ni_parent"),
           ebitda: m.operating_income != null && m.da != null ? M(m.operating_income + m.da) : null, label: m.label || "", niTotal: !!m.ni_parent_is_total};
 }
 function metTable(kind, title){
   const r = cap.result, cs = r.companies.filter(c => !c.error);
-  const head = `<thead><tr><th>회사</th><th>기간</th>${MET_COLS.map(([, h]) => `<th class="num">${h}</th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th>회사</th>${MET_COLS.map(([, h]) => `<th class="num">${h}</th>`).join("")}</tr></thead>`;
   const rows = cs.map(c => {
     const v = metVals(c.metrics && c.metrics[kind]);
-    if (!v) return `<tr><td>${esc(c.corp_name)}</td><td colspan="${MET_COLS.length + 1}" style="white-space:normal;color:var(--muted)">${esc(((c.metrics || {}).notes || [])[0] || "주요 재무 지표가 없습니다. 커넥터를 다시 연결한 뒤 다시 가져와 주세요.")}</td></tr>`;
-    return `<tr><td>${esc(c.corp_name)}${v.da == null ? `<span class="flag">감가상각비 주석 확인</span>` : ""}</td><td style="white-space:normal;font-size:12px;color:var(--muted)">${esc(v.label)}</td>${MET_COLS.map(([k]) =>
+    if (!v) return `<tr><td>${esc(c.corp_name)}</td><td colspan="${MET_COLS.length}" style="white-space:normal;color:var(--muted)">${esc(((c.metrics || {}).notes || [])[0] || "주요 재무 지표가 없습니다. '주요 재무 지표'를 선택하고 다시 가져와 주세요.")}</td></tr>`;
+    return `<tr><td title="${esc(v.label)}">${esc(c.corp_name)}${v.da == null ? `<span class="flag">감가상각비 주석 확인</span>` : ""}</td>${MET_COLS.map(([k]) =>
       `<td class="num${k === "ebitda" ? " calc" : ""}">${fmt(v[k])}${k === "ni_parent" && v.niTotal ? `<span class="flag" title="지배주주 귀속 구분이 없어 당기순이익">순이익</span>` : ""}</td>`).join("")}</tr>`;
   }).join("");
   return `<h3 style="margin:4px 0 0;font-size:14px">${title}</h3><div class="tbl-wrap"><table class="t met">${head}<tbody>${rows}</tbody></table></div>`;
@@ -1340,6 +1352,7 @@ function metTable(kind, title){
 function metRender(){
   const box = $("metBox"), r = cap.result;
   if (!r || !r.companies.some(c => !c.error)){ box.innerHTML = `<p class="foot" style="margin:0">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 LTM과 직전 연간 숫자가 함께 나옵니다.</p>`; return; }
+  if (!r.companies.some(c => c.metrics)){ box.innerHTML = `<p class="foot" style="margin:0">이번 조회에는 주요 재무 지표가 없습니다. <b>DART에서 가져오기</b>를 다시 눌러 주세요.</p>`; return; }
   box.innerHTML = metTable("ltm", "LTM") + metTable("annual", "직전 연간");
 }
 function capDetail(){
@@ -1369,7 +1382,7 @@ $("btnCap").onclick = async () => {
   capMark(); cap.inputs = i;
   $("btnCap").disabled = true; st.textContent = `${list.length}곳 조회 중… (최초로 조회하는 기업의 경우 수 초가 걸릴 수 있습니다)`;
   try {
-    const args = {companies: list, consolidated: i.cons, include_lease: i.lease, ...(i.mode === "fixed" ? {year: +i.year, period: i.period} : {period: "latest"})};
+    const args = {companies: list, consolidated: i.cons, include_lease: i.lease, include_metrics: !!i.wantMet, ...(i.mode === "fixed" ? {year: +i.year, period: i.period} : {period: "latest"})};
     const r = await mcpNs.callTool(DART, "capital_structure", args,
                                    {cache: {staleTime: 21600000, gcTime: 21600000}});
     const p = r.payload || {};
@@ -1382,6 +1395,10 @@ $("btnCap").onclick = async () => {
   finally { $("btnCap").disabled = false; }
 };
 for (const id of ["capYear", "capPeriod", "capCons", "capLease"]) $(id).addEventListener("change", capSaveInputs);
+for (const id of ["capWantCap", "capWantMet"]) $(id).addEventListener("change", () => {
+  if (!$("capWantCap").checked && !$("capWantMet").checked) $(id === "capWantCap" ? "capWantMet" : "capWantCap").checked = true;  // 하나는 남김
+  capTargets(); capSaveInputs();
+});
 
 // 엑셀 (SheetJS는 내보낼 때만 불러옴)
 function loadXLSX(){
@@ -1437,25 +1454,27 @@ $("btnCapXlsx").onclick = async () => {
   const mws = X.utils.aoa_to_sheet(met);
   let row = 3; const mcells = [];
   for (const [kind, title] of [["ltm", "LTM"], ["annual", "직전 연간"]]){
-    X.utils.sheet_add_aoa(mws, [[title], ["회사", "기간", "매출액", "감가상각비", "영업이익", "EBITDA", "법인세비용", "지배주주귀속순이익", "비고"]], {origin: `A${row}`});
+    X.utils.sheet_add_aoa(mws, [[title], ["회사", "매출액", "영업이익", "당기순이익", "감가상각비", "EBITDA", "법인세비용", "지배주주귀속순이익", "기준 보고서", "비고"]], {origin: `A${row}`});
     row += 2;
     cs.forEach(c => { const v = metVals(c.metrics && c.metrics[kind]);
       const note = !v ? (((c.metrics || {}).notes || [])[0] || "") : [v.da == null ? "감가상각비 주석 확인" : "", v.niTotal ? "지배주주 구분 없어 당기순이익" : ""].filter(Boolean).join(" / ");
       const R0 = v => v == null ? null : Math.round(v);
-      X.utils.sheet_add_aoa(mws, [[c.corp_name, v ? v.label : "", v ? R0(v.revenue) : null, v ? R0(v.da) : null, v ? R0(v.operating_income) : null, null,
-                                   v ? R0(v.income_tax) : null, v ? R0(v.ni_parent) : null, note]], {origin: `A${row}`});
+      X.utils.sheet_add_aoa(mws, [[c.corp_name, v ? R0(v.revenue) : null, v ? R0(v.operating_income) : null, v ? R0(v.net_income) : null, v ? R0(v.da) : null, null,
+                                   v ? R0(v.income_tax) : null, v ? R0(v.ni_parent) : null, v ? v.label : "", note]], {origin: `A${row}`});
       const e = v && v.operating_income != null && v.da != null ? Math.round(v.operating_income) + Math.round(v.da) : null;
-      mws[`F${row}`] = e == null ? {t: "s", f: `IF(OR(D${row}="",E${row}=""),"",E${row}+D${row})`, v: ""} : {t: "n", f: `IF(OR(D${row}="",E${row}=""),"",E${row}+D${row})`, v: e};
+      const ef = `IF(OR(C${row}="",E${row}=""),"",C${row}+E${row})`;  // EBITDA = 영업이익 + 감가상각비
+      mws[`F${row}`] = e == null ? {t: "s", f: ef, v: ""} : {t: "n", f: ef, v: e};
       mcells.push(row); row++; });
     row++;
   }
-  mws["!ref"] = `A1:I${row}`;
-  mws["!cols"] = [{wch: 22}, {wch: 44}, ...Array(6).fill({wch: 14}), {wch: 30}];
-  for (const R of mcells) for (const col of "CDEFGH") { const cell = mws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
+  mws["!ref"] = `A1:J${row}`;
+  mws["!cols"] = [{wch: 22}, ...Array(7).fill({wch: 14}), {wch: 44}, {wch: 30}];
+  for (const R of mcells) for (const col of "BCDEFGH") { const cell = mws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
   const wb = X.utils.book_new();
-  X.utils.book_append_sheet(wb, ws, "자본구조");
-  X.utils.book_append_sheet(wb, mws, "주요 재무 지표");
-  const wd = X.utils.aoa_to_sheet(det); wd["!cols"] = [{wch: 22}, {wch: 12}, {wch: 22}, {wch: 16}, {wch: 14}]; X.utils.book_append_sheet(wb, wd, "이자부부채 계정근거");
+  const wantCap = $("capWantCap").checked, wantMet = $("capWantMet").checked && cs.some(c => c.metrics);
+  if (wantCap || !wantMet) X.utils.book_append_sheet(wb, ws, "자본구조");
+  if (wantMet) X.utils.book_append_sheet(wb, mws, "주요 재무 지표");
+  const wd = X.utils.aoa_to_sheet(det); wd["!cols"] = [{wch: 22}, {wch: 12}, {wch: 22}, {wch: 16}, {wch: 14}]; if (wantCap || !wantMet) X.utils.book_append_sheet(wb, wd, "이자부부채 계정근거");
   const wsrc = X.utils.aoa_to_sheet(src); wsrc["!cols"] = [{wch: 22}, {wch: 20}, {wch: 6}, {wch: 16}, {wch: 50}, {wch: 80}]; X.utils.book_append_sheet(wb, wsrc, "출처");
   const buf = X.write(wb, {type: "array", bookType: "xlsx"});
   try { await downloadsNs.save({filename: `대용기업_자본구조_${r.year || today()}.xlsx`, data: buf}); st.textContent = "저장했습니다."; }
