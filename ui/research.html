@@ -1,0 +1,1451 @@
+<title>회사개요 리서치</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 한 줄 작업 흐름(보고서 → 자료 → 작성 → 검토·내려받기). 평가보고서 마스터의 남색을 강조색으로. */
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --sunk:#eef1f5; --ink:#1a2230; --muted:#5a6475; --line:#d9dee6;
+  --accent:#1e3a6e; --accent-ink:#ffffff; --accent-soft:#e3eaf6;
+  --ok:#0f7b5f; --ok-soft:#e5f4ee; --warn:#9a5b06; --warn-soft:#fdf3e1; --bad:#b42318; --bad-soft:#fdeceb;
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --surface:#161d28; --sunk:#1c2532; --ink:#e5e9f0; --muted:#9aa4b4; --line:#2b3546;
+  --accent:#8fb0ea; --accent-ink:#0f141c; --accent-soft:#1f2c44;
+  --ok:#5cc7a3; --ok-soft:#14302a; --warn:#e6b25c; --warn-soft:#33281a; --bad:#f08a80; --bad-soft:#3a1d1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --surface:#161d28; --sunk:#1c2532; --ink:#e5e9f0; --muted:#9aa4b4; --line:#2b3546;
+  --accent:#8fb0ea; --accent-ink:#0f141c; --accent-soft:#1f2c44;
+  --ok:#5cc7a3; --ok-soft:#14302a; --warn:#e6b25c; --warn-soft:#33281a; --bad:#f08a80; --bad-soft:#3a1d1c; color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.6;word-break:keep-all;overflow-wrap:break-word;margin:0}
+input,select,textarea,button{word-break:normal}
+.wrap{max-width:1200px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:var(--r);padding:10px 14px;font-size:13px}
+.banner b{color:var(--accent)}
+section.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:grid;gap:14px;min-width:0}
+.step-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.step-h .n{font-family:var(--f-mono);font-size:12px;color:var(--accent);font-weight:500}
+.step-h h2{font-size:16px;margin:0;font-weight:700}
+.step-h .aside{margin-left:auto;color:var(--muted);font-size:12px;min-width:0}
+@media (max-width:640px){.step-h .aside{margin-left:0;flex-basis:100%}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label.f{display:grid;gap:5px;font-size:12px;font-weight:500;color:var(--muted);min-width:0}
+input[type=text],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;line-height:1.55}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+.guide{background:var(--sunk);border-radius:6px;padding:12px 14px;font-size:13px;display:grid;gap:4px}
+.guide .row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px}.guide .k{color:var(--muted)}
+@media (max-width:520px){.guide .row{grid-template-columns:1fr;gap:0}.guide .row+.row{margin-top:4px}}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.src{border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:10px;min-width:0}
+.src-top{display:grid;grid-template-columns:auto 130px 1fr auto;gap:8px;align-items:center}
+.src-top .id{font-family:var(--f-mono);font-weight:500;color:var(--accent);width:28px}
+@media (max-width:640px){.src-top{grid-template-columns:auto 1fr auto}.src-top .title-in{grid-column:1/-1}}
+.src textarea{min-height:110px;font-size:13px}
+.src .url{font-size:12px}
+.src .src-meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.meter{font-size:12px;color:var(--muted)}.meter.over{color:var(--bad);font-weight:700}
+button.btn{font:inherit;border-radius:6px;padding:9px 16px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:500}
+button.btn.ghost{background:transparent;color:var(--accent)}
+button.btn.quiet{border-color:var(--line);background:transparent;color:var(--muted);padding:6px 10px;font-size:12px}
+button:disabled{opacity:.5;cursor:default}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.status{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;font:inherit;padding:8px 12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.issues{display:grid;gap:8px;justify-items:start}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;font-weight:500}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.issue-list{margin:0;padding-left:18px;font-size:13px;overflow-wrap:anywhere}
+.issue-list li+li{margin-top:6px}
+.fix{display:flex;gap:8px;align-items:flex-start;margin-top:4px;flex-wrap:wrap}
+.fix input,.fix textarea{flex:1 1 260px;min-width:0;font-size:13px}
+.fix .cnt{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:8px}.fix .cnt.over{color:var(--bad);font-weight:700}
+.snip{color:var(--muted)}.issue-list li{margin:2px 0}
+.issue-list code{font-family:var(--f-mono);font-size:12px}
+.rv{display:grid;gap:18px}
+.rv h3{font-size:13px;margin:0 0 6px;color:var(--muted);font-weight:500;letter-spacing:.02em}
+.kv{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:4px 12px;font-size:13px}
+.kv>span{min-width:0;overflow-wrap:anywhere}
+.grp{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em;border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+.grp:first-child{border-top:0;padding-top:0}
+.rv>div{min-width:0}
+.para{overflow-wrap:anywhere}
+.kv .k{color:var(--muted)}
+.cnt{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cnt.over{color:var(--bad);font-weight:500}
+.para{white-space:pre-wrap;font-size:13px;background:var(--sunk);border-radius:6px;padding:10px 12px}
+.sids{font-family:var(--f-mono);font-size:11px;color:var(--accent);margin-left:6px}
+.sids.none{color:var(--warn)}
+.tbl-wrap{overflow-x:auto}
+table.t{border-collapse:collapse;font-size:13px;min-width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-weight:500;color:var(--muted);font-size:12px}
+table.t td.num{text-align:right;font-variant-numeric:tabular-nums}
+.bars{display:flex;align-items:flex-end;gap:10px;height:120px;padding:8px 4px 0;border-bottom:1px solid var(--line)}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-width:0;height:100%}
+.bar i{display:block;width:70%;max-width:44px;background:var(--accent);border-radius:3px 3px 0 0}
+.bar i.fc{opacity:.45}
+.bar span{font-size:11px;font-variant-numeric:tabular-nums}
+.bar-lab{display:flex;gap:10px;padding:4px}.bar-lab span{flex:1;text-align:center;font-size:11px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis}
+#jsonEd{font-family:var(--f-mono);font-size:12px;min-height:420px;white-space:pre;overflow:auto}
+.foot{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13px;padding:24px;text-align:center;border:1px dashed var(--line);border-radius:6px}
+.views{display:flex;gap:4px;margin-top:12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.views button{border:0;background:none;font:inherit;font-size:14px;padding:8px 14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.views button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.view{display:grid;gap:20px;min-width:0}
+.intro{margin:0;color:var(--muted)}
+.linked{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.linked .mono{color:var(--ink)}
+details.guide-d{border-radius:6px;background:var(--sunk)}
+details.guide-d>summary{cursor:pointer;padding:8px 14px;font-size:12px;color:var(--muted);font-weight:500}
+details.guide-d .guide{padding-top:0}
+.cap-rows{display:grid;gap:8px}
+.tool-top{display:flex;justify-content:flex-end;margin:-4px 0 -6px}
+.picked{display:grid;gap:6px}
+.picked .row{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px 6px 12px}
+.picked .row .no{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
+.picked .row .nm{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.picked .row .meta{font-size:12px;color:var(--muted)}
+.picked .none{font-size:13px;color:var(--muted);padding:4px 2px}
+.hit .add{margin-left:auto}
+.cap-row{display:grid;grid-template-columns:24px minmax(140px,1fr) auto minmax(180px,1.4fr) auto;gap:8px;align-items:center}
+.cap-row .no{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
+.cap-row .pick{font-size:13px;min-width:0}
+.cap-row .pick .nm{font-weight:500}.cap-row .pick .meta{color:var(--muted);font-size:12px;margin-left:6px}
+.cap-row .pick.none{color:var(--muted);font-size:12px}
+@media (max-width:640px){.cap-row{grid-template-columns:24px minmax(0,1fr) auto}.cap-row .pick{grid-column:2/-1}.cap-row .del{grid-column:3}}
+.cap-warn{margin:0;color:var(--bad);font-weight:700;font-size:13px}
+.cap-opts{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;font-size:13px}
+.cap-opts .fixed{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cap-opts .fixed input{width:90px}.cap-opts .fixed select{width:auto}
+.radio{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink);white-space:nowrap}
+table.cap{font-size:12.5px;white-space:nowrap}
+table.cap td,table.cap th{padding:6px 6px}
+table.cap th{position:sticky;top:0;background:var(--surface)}
+table.cap td.num,table.cap th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.cap input{width:84px;padding:4px 6px;text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px}
+table.cap tr.err td{color:var(--bad)}
+table.cap button.co{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:2px}
+table.cap .calc{color:var(--accent);font-weight:500}
+.flag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin-left:6px;font-weight:500}
+.cap-detail:empty{display:none}
+.cap-detail{border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;font-size:13px;min-width:0}
+.cap-detail h3{margin:0;font-size:14px}
+.dart{background:var(--accent-soft);border-radius:6px;padding:14px;display:grid;gap:10px;min-width:0}
+.dart-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}.dart-row label{min-width:min(100%,220px)}
+.hits{display:grid;gap:6px}.hits:empty{display:none}
+.hit{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer;min-width:0}
+.hit:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.hit .nm{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.lnk-h{font-size:12px;font-weight:500;color:var(--muted)}
+.fin-in{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:flex-end}
+.fin-in label.f{width:130px}
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;min-width:0}
+table.fin{font-size:12.5px;white-space:nowrap}
+table.fin td.num,table.fin th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.fin tr.sub td{background:var(--sunk);font-weight:500}
+table.fin tr.total td{background:var(--sunk);font-weight:700}
+table.fin tr.ratio td{color:var(--muted);font-style:italic}
+table.fin tr.etc td:first-child{color:var(--muted)}
+table.fin td.ind{padding-left:20px}
+table.fin .user{color:var(--muted);font-size:11px}
+.dg{display:flex;gap:6px;align-items:stretch;overflow-x:auto;padding-bottom:4px}
+.dg-col{flex:1 1 0;min-width:110px;display:grid;gap:6px;align-content:center}
+.dg-h{font-size:12px;font-weight:700;color:var(--accent);text-align:center}
+.dg-it{border:1px solid var(--line);background:var(--sunk);border-radius:4px;padding:6px 8px;text-align:center;font-size:12px;display:grid;gap:1px}
+.dg-it span{color:var(--muted);font-size:11px}
+.dg-it.co{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.dg-it.co span{color:var(--accent-ink);opacity:.8}
+.dg-it .cnt.hide-ok:not(.over){display:none}
+.dg-ar{align-self:center;color:var(--accent);font-weight:700}
+#linkIn{font-size:12px;font-family:var(--f-mono);min-height:72px}.hit .meta{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.tag{font-size:11px;padding:1px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}.tag.on{background:var(--ok-soft);color:var(--ok)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>회사개요 리서치</h1>
+    <nav class="views" role="tablist" aria-label="도구">
+      <button role="tab" type="button" id="navResearch" aria-selected="true">회사개요·산업 장표</button>
+      <button role="tab" type="button" id="navCap" aria-selected="false">대용기업 자본구조</button>
+    </nav>
+  </header>
+
+  <div id="viewResearch" class="view">
+  <p class="intro">회사명을 넣으면 DART에서 회사의 기초 자료와 최근 재무 정보를 불러옵니다. 외부 자료 링크와 PDF를 읽어 회사의 이해 장표 초안을 만듭니다. 사용자 검토 이후 <b>보고서로 보내기</b>를 누르면 DCF Build 앱의 보고서 장표에 반영됩니다. 작성 코스트는 이 화면을 쓰는 사용자의 Claude 사용량에서 차감됩니다.</p>
+
+  <div class="banner" id="diag" hidden></div>
+  <div class="tool-top"><button class="btn quiet" id="btnResetR" type="button">초기화</button></div>
+  <div class="banner" id="exampleBanner">
+    <span><b>예시</b> 가상 회사(가나다케미칼) 자료와 결과가 채워져 있습니다.</span>
+    <button class="btn quiet" id="btnClear">비우고 새로 시작</button>
+  </div>
+
+  <input type="hidden" id="company"><input type="hidden" id="asof"><input type="hidden" id="corp"><input type="hidden" id="rid">
+  <div class="linked" id="ridBox" hidden><span>보고서 앱의 보고서</span><span class="mono" id="ridShow"></span><span>에 연결됨 · 아래 <b>보고서로 보내기</b>를 누르면 이 보고서에 들어갑니다.</span></div>
+  <details class="guide-d"><summary>장표별로 들어갈 칸 보기 (지분가치·PPA·사용가치 공통 양식)</summary><div class="guide" id="guide"></div></details>
+
+  <section class="step" aria-labelledby="s2h">
+    <div class="step-h"><span class="n">1</span><h2 id="s2h">자료</h2><span class="aside meter" id="totalMeter"></span></div>
+    <div class="dart" id="dartBox">
+      <div class="dart-row">
+        <label class="f" style="flex:1">DART에서 회사 찾기<input type="text" id="dartQ" placeholder="회사명 (㈜·주식회사는 빼도 됩니다)" autocomplete="off"></label>
+        <button class="btn" id="btnDartFind" type="button">찾기</button>
+      </div>
+      <div id="dartHits" class="hits" role="radiogroup" aria-label="검색 결과"></div>
+      <div class="actions"><button class="btn" id="btnDartGet" type="button" hidden>자료 가져오기</button><span class="status" id="dartStatus"></span></div>
+      <ul class="issue-list" id="dartNotes"></ul>
+    </div>
+    <div class="dart" id="linkBox">
+      <span class="lnk-h">시장 현황용 자료 · 기사·보고서 링크를 붙여넣거나, 가지고 있는 PDF 파일(산업 보고서 등)을 올리세요.</span>
+      <label class="f" for="linkIn"><span class="lnk-h">링크 (복수 입력 가능, 줄바꿈으로 구분하며 최대 8개)</span></label>
+      <textarea id="linkIn" placeholder="https://n.news.naver.com/mnews/article/...&#10;https://www.kita.net/..."></textarea>
+      <div class="actions"><button class="btn" id="btnLink" type="button">링크 본문 가져오기</button>
+        <button class="btn ghost" id="btnPdf" type="button">PDF 파일 올리기</button><input type="file" id="pdfIn" accept="application/pdf,.pdf" multiple hidden>
+        <span class="status" id="linkStatus"></span></div>
+      <ul class="issue-list" id="linkNotes"></ul>
+    </div>
+    <p class="foot" style="margin:0">첨부한 링크 및 PDF 파일을 토대로 데이터를 읽습니다. <b>자료 추가</b> 기능으로 사용자가 직접 데이터를 붙여넣을 수 있습니다. 데이터 준비가 완료되면 AI가 사업의 이해 초안을 작성합니다.</p>
+    <div id="srcList" style="display:grid;gap:10px"></div>
+    <div class="actions"><button class="btn ghost" id="btnAddSrc" type="button">자료 추가</button></div>
+    <div class="dart" id="finBox">
+      <span class="lnk-h">U1 재무정보 장표 · DART 공시 재무제표 연간 2개년 (평가기준일 열은 직접 입력) · 사업연도를 비우면 가장 최근 사업보고서 · Claude 사용량 들지 않음</span>
+      <div class="fin-in">
+        <label class="f">사업연도<input type="text" id="finYear" inputmode="numeric" class="mono" placeholder="최근 자동"></label>
+        <label class="f">항목별 하위 계정 수<select id="finN"><option value="2">2개</option><option value="3" selected>3개</option><option value="4">4개</option><option value="5">5개</option><option value="6">6개</option></select></label>
+        <label class="chk"><input type="checkbox" id="finCons" checked> 연결 우선</label>
+        <label class="chk"><input type="checkbox" id="finEq"> 자본 세부 계정</label>
+        <button class="btn" id="btnFin" type="button">재무제표 가져오기</button>
+      </div>
+      <span class="status" id="finStatus"></span>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="s3h">
+    <div class="step-h"><span class="n">2</span><h2 id="s3h">작성</h2></div>
+    <div class="actions">
+      <button class="btn" id="btnGen" type="button">Claude로 초안 작성</button>
+      <button class="btn ghost" id="btnStop" type="button" hidden>중지</button>
+      <span class="status" id="genStatus"></span>
+    </div>
+    <p class="foot" style="margin:0">한 번 누를 때 한 번만 호출합니다. 글자 수 초과 같은 오류는 아래 검토 화면에서 바로 고치면 추가 비용이 들지 않습니다.</p>
+  </section>
+
+  <section class="step" aria-labelledby="s4h">
+    <div class="step-h"><span class="n">3</span><h2 id="s4h">검토·보내기</h2></div>
+    <div class="issues" id="issues"></div>
+    <div class="tabs" role="tablist" hidden>
+      <button role="tab" id="tabRv" aria-selected="true" type="button">장표 미리보기</button>
+      <button role="tab" id="tabJs" aria-selected="false" type="button">JSON 직접 수정</button>
+    </div>
+    <div id="paneRv" class="rv"></div>
+    <div id="paneJs" hidden><textarea id="jsonEd" spellcheck="false" aria-label="결과 JSON"></textarea></div>
+    <div class="dart" id="sendBox">
+      <span class="lnk-h">보고서 앱으로 바로 보내기 — 보고서 앱 화면의 '보고서 ID'를 붙여넣거나, 앱의 '리서치 화면 열기'로 들어오면 자동으로 채워집니다.</span>
+      <div class="dart-row">
+        <label class="f" style="flex:1">보고서 ID<input type="text" id="sendRid" class="mono" placeholder="64자리 영문·숫자" autocomplete="off" spellcheck="false"></label>
+        <button class="btn" id="btnSend" type="button">보고서로 보내기</button>
+      </div>
+      <div class="actions"><span class="status" id="sendStatus"></span><button class="btn quiet" id="btnSendForce" type="button" hidden>그래도 보내기</button></div>
+    </div>
+    <div class="actions" hidden>
+      <button class="btn" id="btnSave" type="button">JSON 내려받기</button>
+      <button class="btn ghost" id="btnCopy" type="button">복사</button>
+      <span class="status" id="saveStatus"></span>
+    </div>
+  </section>
+  </div>
+
+  <div id="viewCap" class="view" hidden>
+  <p class="intro">대용기업을 검색하면 DART 데이터에서 이자부부채를 추출하여 합산하고, 자본구조·유통주식수 등을 표로 출력합니다. 평가기준일의 주가를 기재하면 시가 기준 자본구조가 계산되고, 엑셀로 내려받을 수 있습니다.</p>
+  <div class="tool-top"><button class="btn quiet" id="btnResetC" type="button">초기화</button></div>
+  <section class="step" aria-labelledby="c1h">
+    <div class="step-h"><span class="n">1</span><h2 id="c1h">대용기업</h2><span class="aside" id="capCount">최대 15곳</span></div>
+    <div class="dart">
+      <div class="dart-row">
+        <label class="f" style="flex:1">DART에서 회사 찾기<input type="text" id="capQ" placeholder="회사명 (㈜·주식회사는 빼도 됩니다)" autocomplete="off"></label>
+        <button class="btn" id="btnCapFind" type="button">찾기</button>
+      </div>
+      <div id="capHits" class="hits" aria-label="검색 결과"></div>
+      <span class="status" id="capFindStatus"></span>
+    </div>
+    <div class="picked" id="capPicked"></div>
+    <div class="cap-opts">
+      <span class="lnk-h">보고서 시점</span>
+      <label class="chk"><input type="checkbox" name="capMode" value="latest" checked> 회사별 가장 최근 공시</label>
+      <label class="chk"><input type="checkbox" name="capMode" value="fixed"> 직접 지정</label>
+      <span class="fixed" id="capFixed" hidden><input type="text" id="capYear" inputmode="numeric" class="mono" aria-label="사업연도" placeholder="연도">
+        <select id="capPeriod" aria-label="보고서"><option value="annual">사업보고서 (연간)</option><option value="q3">3분기보고서</option><option value="half">반기보고서</option><option value="q1">1분기보고서</option></select></span>
+    </div>
+    <div class="cap-opts">
+      <span class="lnk-h">조회 기준</span>
+      <label class="chk"><input type="checkbox" id="capCons" checked> 연결 우선 (없으면 별도)</label>
+      <label class="chk"><input type="checkbox" id="capLease" checked> 리스부채 포함</label>
+    </div>
+    <div class="actions"><button class="btn" id="btnCap" type="button">DART에서 가져오기</button><span class="status" id="capStatus"></span></div>
+  </section>
+  <section class="step" aria-labelledby="c2h">
+    <div class="step-h"><span class="n">2</span><h2 id="c2h">자본구조</h2><span class="aside" id="capBasis"></span></div>
+    <p class="cap-warn" id="capWarn" hidden>회사명을 클릭하여 DART 원문과 반드시 대조·검토하세요.</p>
+    <div class="tbl-wrap"><table class="t cap" id="capTable"></table></div>
+    <p class="foot" style="margin:0">(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산. 적용 이자부부채를 고치면 함께 바뀌고, 리스부채는 위 '리스부채 포함' 선택을 따릅니다. 단기금융상품 등 다른 금융자산은 빼지 않았습니다.</p>
+    <p class="foot" style="margin:0">금액 단위 백만원. <b>적용 이자부부채</b>는 주석 확인 후 고칠 수 있고, <b>주가</b>(평가기준일 종가)를 넣으면 시가총액·시가 D/E·D/(D+E)가 다시 계산됩니다. 회사명을 누르면 넣은 계정과 출처가 보입니다.</p>
+    <div id="capDetail" class="cap-detail"></div>
+    <div class="actions"><button class="btn" id="btnCapXlsx" type="button">엑셀로 내려받기</button><span class="status" id="capSaveStatus"></span></div>
+  </section>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+// 통일 장표 (지분가치·PPA·사용가치 공통): U1 회사개요·주주·연혁 / U2 회사의 이해·제품 / U3 시장
+const LAYOUT = {
+  fields: ["company_overview.basic_info", "company_overview.shareholders", "company_overview.shareholders_basis", "company_overview.history",
+           "company_overview.business_summary", "company_overview.products", "company_overview.business_diagram", "company_overview.financials", "industry.market[]", "industry.charts[]"],
+  limits: {
+    "company_overview.basic_info.*": {chars: 40},
+    "company_overview.shareholders": {rows: 6},
+    "company_overview.history": {rows: 4},
+    "company_overview.history[].period": {chars: 13},
+    "company_overview.history[].events[]": {chars: 40},
+    "company_overview.business_summary": {chars: 450},
+    "company_overview.products": {rows: 3},
+    "company_overview.products[].name": {chars: 20},
+    "company_overview.products[].description": {chars: 60},
+    "company_overview.business_diagram.columns[].title": {chars: 12},
+    "company_overview.business_diagram.columns[].items[].label": {chars: 14},
+    "company_overview.business_diagram.columns[].items[].note": {chars: 20},
+    "industry.market[].heading": {chars: 25},
+    "industry.market[]": {chars: 400},
+    "industry.charts[].title": {chars: 25},
+  },
+  market_sections: 2, charts: 2, history_slots: [1, 1, 1, 5],
+};
+const BASIC = [["company_name","회사명"],["headquarters","본점"],["established","설립일"],["ceo","대표이사명"],["business_area","사업분야"],["employees","종업원 수"],["revenue","매출액"]];
+const MARKET_SRC = ["news", "web", "doc", "user"];  // 시장 현황(U3)에 쓸 수 있는 자료 종류 (DART 제외)
+const MAX_MATERIAL = 90000;
+const SRC_TYPES = [["dart","DART 공시"],["user","회사 제공"],["news","기사"],["web","웹"],["doc","보고서 파일"]];
+
+// ---------- 예시 (가상 회사) ----------
+const EXAMPLE = {
+  company: "가나다케미칼(가상)", asof: "2026-09-30", corp: "", rid: "",
+  sources: [
+    {type:"dart", title:"2025 사업보고서", url:"https://dart.fss.or.kr/", text:"[가상 예시] 1. 회사의 개요\n당사는 2008년 3월 15일 설립되었으며 본점은 전라남도 광양시에 있습니다. 대표이사는 김가상입니다. 당사는 전자급·산업용 과산화수소를 제조합니다.\n2012년 6월 광양 제1공장, 2019년 11월 광양 제2공장을 준공하였고, 2020년 3월 전자급 제품 고객 인증을 완료하였습니다. 2024년 5월 증설로 연 10만톤의 생산능력을 확보하였습니다.\n최대주주는 가나다홀딩스(5,100,000주, 51.0%)이며 라마바투자가 3,900,000주(39.0%), 기타 주주가 1,000,000주(10.0%)를 보유하고 있습니다(2025년 12월말 기준). 2025년 매출액은 1,850억원이며 약 72%가 국내 반도체 고객사에서 발생하였습니다. 2025년말 임직원은 186명입니다.\n주요 제품: 전자급 과산화수소(반도체 웨이퍼 세정·식각용 초고순도 제품), 산업용 과산화수소(제지·섬유 표백 및 폐수 처리용)."},
+    {type:"user", title:"산업 동향 보고서(회사 제공)", url:"", text:"[가상 예시] 국내 전자급 과산화수소 시장규모: 2023년 0.9조원, 2024년 1.0조원, 2025년 1.2조원, 2026년(전망) 1.3조원, 2027년(전망) 1.4조원. 반도체 증설과 공급망 현지화로 2030년까지 연평균 8% 내외 성장이 예상됨."},
+  ],
+};
+const EXAMPLE_RESULT = {"company_overview": {"basic_info": {"company_name": {"value": "가나다케미칼㈜", "source_ids": ["S1"]}, "headquarters": {"value": "전라남도 광양시", "source_ids": ["S1"]}, "established": {"value": "2008년 3월 15일", "source_ids": ["S1"]}, "ceo": {"value": "김가상", "source_ids": ["S1"]}, "business_area": {"value": "전자급·산업용 과산화수소 제조", "source_ids": ["S1"]}, "employees": {"value": "186명 (2025년말)", "source_ids": ["S1"]}, "revenue": {"value": "1,850억원 (2025년)", "source_ids": ["S1"]}}, "business_summary": {"text": "가나다케미칼㈜(이하 \"회사\")는 2008년 설립된 과산화수소 제조업체로, 반도체 세정용 전자급 제품과 산업용 제품을 생산합니다.\n회사는 광양에 2개 공장을 운영하며 2024년 증설로 연 10만톤의 생산능력을 확보하였습니다. 2025년 매출의 약 72%는 국내 반도체 고객사에서 발생하였습니다.\n최대주주는 가나다홀딩스(지분율 51.0%)이며, 라마바투자가 39.0%를 보유하고 있습니다.", "source_ids": ["S1"]}, "history": [{"period": "2008", "events": ["03월 법인 설립"], "source_ids": ["S1"]}, {"period": "2012", "events": ["06월 광양 제1공장 준공"], "source_ids": ["S1"]}, {"period": "2019", "events": ["11월 광양 제2공장 준공"], "source_ids": ["S1"]}, {"period": "2020 ~ 2024", "events": ["2020.03 전자급 제품 고객 인증 완료", "2024.05 생산능력 증설(연 10만톤)"], "source_ids": ["S1"]}], "shareholders": [{"name": "가나다홀딩스", "shares": 5100000, "pct": 51.0, "source_ids": ["S1"]}, {"name": "라마바투자", "shares": 3900000, "pct": 39.0, "source_ids": ["S1"]}, {"name": "기타 주주", "shares": 1000000, "pct": 10.0, "source_ids": ["S1"]}], "shareholders_basis": "2025년 12월말", "products": [{"name": "전자급 과산화수소", "description": "반도체 웨이퍼 세정·식각용 초고순도 제품", "source_ids": ["S1"]}, {"name": "산업용 과산화수소", "description": "제지·섬유 표백 및 폐수 처리용", "source_ids": ["S1"]}], "business_diagram": {"title": "사업 구조", "columns": [{"title": "원재료", "items": [{"label": "수소·산소", "note": "외부 매입"}]}, {"title": "가나다케미칼", "is_company": true, "items": [{"label": "광양 제1공장"}, {"label": "광양 제2공장", "note": "연 10만톤"}]}, {"title": "주요 제품", "items": [{"label": "전자급 과산화수소"}, {"label": "산업용 과산화수소"}]}, {"title": "고객", "items": [{"label": "국내 반도체 고객사", "note": "매출 약 72%"}, {"label": "제지·섬유 업체"}]}], "source_ids": ["S1"]}}, "industry": {"market": [{"heading": "전자급 과산화수소 시장", "text": "전자급 과산화수소는 반도체 세정 공정에 쓰이는 초고순도 약품으로, 반도체 생산량에 따라 수요가 결정됩니다.\n국내 시장은 2025년 약 1.2조원 규모이며, 반도체 증설과 공급망 현지화에 힘입어 2030년까지 연평균 8% 내외 성장이 예상됩니다.", "source_ids": ["S2"]}], "charts": [{"title": "국내 전자급 H2O2 시장규모", "unit": "조원", "chart_type": "column", "points": [{"label": "2023", "value": 0.9}, {"label": "2024", "value": 1.0}, {"label": "2025", "value": 1.2}, {"label": "2026E", "value": 1.3, "is_forecast": true}, {"label": "2027E", "value": 1.4, "is_forecast": true}], "source_ids": ["S2"]}]}};
+
+// ---------- 상태 ----------
+const $ = id => document.getElementById(id);
+const state = { sources: [], result: null, isExample: true };
+let sampleFn = null, downloadsNs = null, ctl = null;
+
+function today(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function len(s){ return [...String(s ?? "")].length; }
+
+// ---------- 양식 안내 ----------
+function renderGuide(){
+  const lim = LAYOUT.limits;
+  const rows = [
+    ["U1 회사현황 표", BASIC.map(x => x[1]).join(" · ") + " (7행)", "DART"],
+    ["U1 주주 현황", `최대 ${lim["company_overview.shareholders"].rows}행 (기타 포함, 합계 자동) · 기준시점`, "DART"],
+    ["U1 주요 연혁", `기간 묶음 ${LAYOUT.history_slots.length}개, 묶음별 줄 수 [${LAYOUT.history_slots.join(", ")}]`, "DART"],
+    ["U2 회사의 이해", `${lim["company_overview.business_summary"].chars}자 이내`, "DART"],
+    ["U2 주요 제품", `최대 ${lim["company_overview.products"].rows}개 · 설명 ${lim["company_overview.products[].description"].chars}자`, "DART"],
+    ["U2 사업 구조 도식", "원재료·매입처 → 회사(사업부) → 제품 → 고객 · 2~4단, 단마다 최대 4칸", "DART"],
+    ["U3 시장 현황", `${LAYOUT.market_sections}개 × ${lim["industry.market[]"].chars}자`, "기사·웹·회사 제공"],
+    ["U3 시장 차트", `${LAYOUT.charts}개 (연도별 숫자가 있을 때만)`, "기사·웹·회사 제공"],
+  ];
+  $("guide").innerHTML = `<div class="row"><span class="k">공통 양식에 들어갈 칸</span><span></span></div>` +
+    rows.map(r => `<div class="row"><span class="k">${esc(r[0])}</span><span>${esc(r[1])} <span class="sids">${esc(r[2])}</span></span></div>`).join("") +
+    `<div class="row"><span class="k">U4 현금창출단위</span><span>사용가치 보고서에서 담당자가 직접 작성</span></div>`;
+}
+
+// ---------- 자료 ----------
+function renderSources(){
+  const list = $("srcList"); list.innerHTML = "";
+  state.sources.forEach((s, i) => {
+    const el = document.createElement("div"); el.className = "src";
+    el.innerHTML = `<div class="src-top">
+        <span class="id">S${i+1}</span>
+        <select id="st${i}" aria-label="S${i+1} 종류">${SRC_TYPES.map(([v,l]) => `<option value="${v}" ${s.type===v?"selected":""}>${l}</option>`).join("")}</select>
+        <input class="title-in" type="text" id="sn${i}" placeholder="각주에 찍힐 출처명 (예: 2025 사업보고서)" value="${esc(s.title)}">
+        <button class="btn quiet" type="button" data-del="${i}" aria-label="S${i+1} 삭제">삭제</button>
+      </div>
+      <input class="url" type="text" id="su${i}" placeholder="원문 링크 (선택)" value="${esc(s.url)}">
+      <textarea id="sx${i}" placeholder="자료 본문을 붙여넣으세요">${esc(s.text)}</textarea>`;
+    list.appendChild(el);
+    const bind = (id, key) => $(id).addEventListener("input", e => { s[key] = e.target.value; markEdited(); updateMeter(); saveDraft(); });
+    bind(`st${i}`, "type"); bind(`sn${i}`, "title"); bind(`su${i}`, "url"); bind(`sx${i}`, "text");
+  });
+  list.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { state.sources.splice(+b.dataset.del, 1); renderSources(); markEdited(); saveDraft(); });
+  updateMeter();
+}
+$("btnAddSrc").onclick = () => { state.sources.push({type:"dart", title:"", url:"", text:""}); renderSources(); markEdited(); $(`sx${state.sources.length-1}`).focus(); };
+// ---------- DART 커넥터 ----------
+const DART = "DART Research";
+let mcpNs = null, dartPick = null;
+function dartErr(e){
+  const c = e && e.code;
+  if (c === "server_not_connected" || c === "server_not_found" || c === "selection_required")
+    return `claude.ai 설정 → 커넥터에서 '${DART}'를 추가하거나 켜 주세요. 관리자가 조직 커넥터로 등록했다면 켜기만 하면 됩니다.`;
+  if (c === "needs_reauth") return `'${DART}' 커넥터를 설정 → 커넥터에서 다시 연결해 주세요.`;
+  if (c === "not_in_manifest" || c === "approval_required" || c === "not_granted") return "이 화면이 DART 커넥터를 쓰도록 허용되지 않았습니다. 다시 누르면 허용 여부를 묻습니다.";
+  if (c === "blocked_by_policy") return "조직 정책으로 이 커넥터를 쓸 수 없습니다. 관리자에게 문의해 주세요.";
+  if (c === "server_unavailable") return "DART 커넥터 서버가 응답하지 않습니다. 잠시 뒤 다시 눌러 주세요.";
+  if (c === "tool_error"){
+    const m = String((e.message || "")).replace(/^Error executing tool \w+:\s*/, "");
+    return m || "DART 조회에 실패했습니다.";
+  }
+  return "DART 조회 중 문제가 생겼습니다. 잠시 뒤 다시 눌러 주세요.";
+}
+function dartBusy(on){ $("btnDartFind").disabled = on || !mcpNs; $("btnDartGet").disabled = on || !mcpNs || !dartPick; }
+$("btnDartFind").onclick = async () => {
+  const q = $("dartQ").value.trim(), st = $("dartStatus");
+  if (!q){ st.textContent = "회사명을 넣어 주세요."; return; }
+  dartBusy(true); st.textContent = "찾는 중…"; $("dartHits").innerHTML = ""; $("btnDartGet").hidden = true; dartPick = null; $("dartNotes").innerHTML = "";
+  try {
+    const r = await mcpNs.callTool(DART, "search_company", {name: q, limit: 8}, {cache: {staleTime: 3600000, gcTime: 3600000}});
+    const hits = (r.payload && r.payload.results) || [];
+    if (!hits.length){ st.textContent = "DART에 등록된 회사가 없습니다. 이름을 줄여 보거나, 비외감 회사라면 자료를 직접 붙여넣어 주세요."; return; }
+    $("dartHits").innerHTML = hits.map((h, i) => `<label class="hit"><input type="radio" name="dartHit" value="${i}" ${i === 0 ? "checked" : ""}>
+      <span class="nm">${esc(h.corp_name)}</span><span class="tag ${h.listed ? "on" : ""}">${h.listed ? "상장 " + esc(h.stock_code) : "비상장"}</span>
+      <span class="meta mono">${esc(h.corp_code)}</span></label>`).join("");
+    dartPick = hits[0];
+    $("dartHits").querySelectorAll("input").forEach(inp => inp.onchange = () => { dartPick = hits[+inp.value]; });
+    $("btnDartGet").hidden = false; st.textContent = `${hits.length}곳을 찾았습니다. 맞는 회사를 고르고 자료를 가져오세요.`;
+  } catch (e){ st.textContent = dartErr(e); }
+  finally { dartBusy(false); }
+};
+$("dartQ").addEventListener("input", () => { if (!$("corp").value) $("company").value = $("dartQ").value.trim(); saveDraft(); });
+$("dartQ").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("btnDartFind").click(); } });
+$("btnDartGet").onclick = async () => {
+  if (!dartPick) return;
+  const st = $("dartStatus");
+  dartBusy(true); st.textContent = `${dartPick.corp_name} 자료를 가져오는 중… (처음 조회는 10~30초)`;
+  try {
+    const r = await mcpNs.callTool(DART, "research_bundle", {corp_code: dartPick.corp_code, max_chars: 40000}, {cache: {staleTime: 21600000, gcTime: 21600000}});
+    const b = r.payload || {};
+    const mats = (b.materials || []).map(m => ({type: m.type || "dart", title: m.title || "", url: m.url || "", text: m.text || ""}));
+    if (!mats.length) throw {code: "tool_error", message: "가져온 자료가 비어 있습니다."};
+    const extra = state.sources.filter(s => s.type !== "dart" && s.text.trim());  // 직접 붙인 회사 자료는 뒤에 유지
+    markEdited();
+    state.sources = [...mats, ...extra];
+    if (state.fin && state.fin.corp_name && state.fin.corp_name !== (b.corp_name || dartPick.corp_name)){ state.fin = null; $("finStatus").textContent = "회사가 바뀌어 재무정보를 비웠습니다. 다시 가져오세요."; }
+    if (state.result){ state.result = null; lastNotes = []; refreshResult(); }  // 출처 번호가 바뀌었으므로 이전 결과는 비움
+    $("corp").value = b.corp_code || dartPick.corp_code;
+    $("company").value = b.corp_name || dartPick.corp_name;
+    renderSources(); saveDraft();
+    const n = totalChars();
+    st.textContent = `가져왔습니다: ${mats.map(m => m.title).join(", ")} · ${n.toLocaleString()}자` + (b.report ? ` (${b.report.report_nm})` : "");
+    $("dartNotes").innerHTML = (b.notes || []).map(x => `<li>${esc(x)}</li>`).join("");
+  } catch (e){ st.textContent = dartErr(e); }
+  finally { dartBusy(false); }
+};
+
+function linkBusy(on){ $("btnLink").disabled = on || !mcpNs; }
+$("btnLink").onclick = async () => {
+  const st = $("linkStatus"), notes = [];
+  const urls = [...new Set($("linkIn").value.split(/\s+/).map(x => x.trim()).filter(x => /^https?:\/\//i.test(x)))];
+  if (!urls.length){ st.textContent = "http로 시작하는 링크를 한 줄에 하나씩 넣어 주세요."; return; }
+  if (urls.length > 8){ st.textContent = "한 번에 8개까지 가져옵니다."; return; }
+  linkBusy(true); markEdited(); $("linkNotes").innerHTML = "";
+  let ok = 0; const left = [];
+  for (const [i, u] of urls.entries()){
+    st.textContent = `가져오는 중… ${i + 1}/${urls.length}`;
+    if (state.sources.some(s => s.url && s.url.trim() === u)){ notes.push(`이미 있는 링크라 건너뜀: ${u}`); continue; }
+    try {
+      const r = await mcpNs.callTool(DART, "fetch_url", {url: u, max_chars: 8000}, {cache: {staleTime: 86400000, gcTime: 86400000}});
+      const p = r.payload || {};
+      (p.notes || []).forEach(n => notes.push(`${p.title || u}: ${n}`));
+      const host = (() => { try { return new URL(p.url || u).hostname; } catch { return ""; } })();
+      const isNews = /news|naver\.com|daum\.net|ilbo|times|herald|biz|economy|hankyung|mk\.co|yna|edaily|etnews|newsis|chosun|joongang|donga|hani|khan/i.test(host);
+      const title = [p.site, p.title].filter(Boolean).join(", ") + (p.published ? ` (${p.published})` : "");
+      const blank = state.sources.findIndex(s => !s.text.trim() && !s.title.trim());
+      const src = {type: isNews ? "news" : "web", title: title || u, url: p.url || u, text: p.text || ""};
+      if (blank >= 0) state.sources[blank] = src; else state.sources.push(src);
+      if ((p.text || "").length >= 200) ok++; else left.push(u);
+    } catch (e){
+      if (e && (e.code === "blocked_by_policy" || e.code === "not_in_manifest")){
+        notes.push(`claude.ai가 DART Research 커넥터의 새 도구 'fetch_url'을 아직 허용하지 않았습니다. 설정 → 커넥터 → DART Research에서 도구 목록을 새로 고치고 fetch_url을 켜 주세요(조직 커넥터라면 관리자 설정). 그동안은 기사 본문을 '자료 추가'로 붙여넣어 주세요.`);
+        left.push(...urls.slice(i)); break;
+      }
+      notes.push(`${u} — ${dartErr(e)}`); left.push(u);
+    }
+  }
+  renderSources(); saveDraft();
+  $("linkIn").value = left.join("\n");
+  $("linkNotes").innerHTML = notes.map(x => `<li>${esc(x)}</li>`).join("");
+  st.textContent = `본문을 가져온 링크 ${ok}개` + (left.length ? ` · 못 읽은 링크 ${left.length}개는 칸에 남겼습니다(자료 추가로 본문을 붙여넣어 주세요)` : "") + ".";
+  linkBusy(false);
+};
+
+// ---------- PDF 파일 올리기 (이 화면 안에서 글자만 뽑음 · 서버로 보내지 않음) ----------
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+let pdfjsP = null;
+function loadPdfJs(){
+  if (pdfjsP) return pdfjsP;
+  pdfjsP = new Promise((res, rej) => {
+    const sc = document.createElement("script"); sc.src = PDFJS;
+    sc.onload = () => { const lib = window.pdfjsLib; if (!lib) return rej(new Error("no pdfjs")); lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; res(lib); };
+    sc.onerror = () => { pdfjsP = null; rej(new Error("PDF 읽기 부품을 불러오지 못했습니다. 네트워크를 확인해 주세요.")); };
+    document.head.appendChild(sc);
+  });
+  return pdfjsP;
+}
+async function pdfText(file, maxPages = 40, maxChars = 12000){
+  const lib = await loadPdfJs();
+  const doc = await lib.getDocument({data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false,
+    cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/", cMapPacked: true}).promise;  // 글꼴을 넣지 않은 한글 PDF용
+  let title = "";
+  try { const m = await doc.getMetadata(); title = ((m && m.info && m.info.Title) || "").trim(); } catch {}
+  const out = [];
+  let len = 0;
+  for (let n = 1; n <= Math.min(doc.numPages, maxPages) && len < maxChars; n++){
+    const tc = await (await doc.getPage(n)).getTextContent();
+    const t = tc.items.map(it => (it.str || "") + (it.hasEOL ? "\n" : "")).join("").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    if (t){ out.push(t); len += t.length; }
+  }
+  const text = out.join("\n\n");
+  return {text: text.slice(0, maxChars), cut: text.length > maxChars || doc.numPages > maxPages, pages: doc.numPages, title};
+}
+$("btnPdf").onclick = () => $("pdfIn").click();
+$("pdfIn").onchange = async () => {
+  const files = [...$("pdfIn").files].slice(0, 8), st = $("linkStatus"), notes = [];
+  $("pdfIn").value = "";
+  if (!files.length) return;
+  markEdited(); $("btnPdf").disabled = true; $("linkNotes").innerHTML = "";
+  let ok = 0;
+  for (const [i, f] of files.entries()){
+    st.textContent = `PDF 읽는 중… ${i + 1}/${files.length} (${f.name})`;
+    if (f.size > 40e6){ notes.push(`${f.name}: 40MB가 넘어 건너뜀`); continue; }
+    try {
+      const r = await pdfText(f);
+      const name = f.name.replace(/\.pdf$/i, "");
+      if (r.text.length < 200){ notes.push(`${f.name}: 글자를 거의 읽지 못했습니다. 스캔(이미지) PDF라면 필요한 부분을 '자료 추가'로 붙여넣어 주세요.`); continue; }
+      if (r.cut) notes.push(`${f.name}: ${r.pages}쪽 중 앞부분(최대 40쪽·12,000자)만 넣었습니다. 필요한 부분이 뒤에 있으면 그 부분을 붙여넣어 주세요.`);
+      const blank = state.sources.findIndex(s => !s.text.trim() && !s.title.trim());
+      const src = {type: "doc", title: r.title && r.title.length < 80 ? `${r.title} (${name}.pdf)` : `${name}.pdf`, url: "", text: r.text};
+      if (blank >= 0) state.sources[blank] = src; else state.sources.push(src);
+      ok++;
+    } catch (e){ notes.push(`${f.name}: ${e && e.message ? e.message : "읽지 못했습니다"}`); }
+  }
+  renderSources(); saveDraft();
+  $("linkNotes").innerHTML = notes.map(x => `<li>${esc(x)}</li>`).join("");
+  st.textContent = `PDF ${ok}개를 자료로 넣었습니다.` + (notes.length ? " 아래 안내를 확인하세요." : "");
+  $("btnPdf").disabled = false;
+};
+
+function totalChars(){ return state.sources.reduce((a, s) => a + len(s.text), 0); }
+function updateMeter(){
+  const n = totalChars(), m = $("totalMeter");
+  m.textContent = `${n.toLocaleString()} / ${MAX_MATERIAL.toLocaleString()}자`;
+  m.classList.toggle("over", n > MAX_MATERIAL);
+}
+
+// ---------- 재무제표 (U1 재무정보) ----------
+// 공시된 계정명을 그대로 쓰고, 섹션(유동자산 등)마다 금액이 큰 계정 N-1개 + '기타'로 줄입니다. 기타 = 소계 − 표시한 계정.
+// DART XBRL의 ord는 섹션 묶음만 맞고 섹션 안 순서는 계정 ID 순이라, 섹션 안에서는 금액 큰 순으로 놓습니다.
+const BS_HEAD = [
+  ["CA", ["ifrs-full_CurrentAssets"], /^유동자산$/], ["NCA", ["ifrs-full_NoncurrentAssets"], /^비유동자산$/],
+  ["A", ["ifrs-full_Assets"], /^자산총계$/], ["CL", ["ifrs-full_CurrentLiabilities"], /^유동부채$/],
+  ["NCL", ["ifrs-full_NoncurrentLiabilities"], /^비유동부채$/], ["L", ["ifrs-full_Liabilities"], /^부채총계$/],
+  ["EP", ["ifrs-full_EquityAttributableToOwnersOfParent"], /^지배기업.*(자본|지분)$/], ["NCI", ["ifrs-full_NoncontrollingInterests"], /^비지배지분$/],
+  ["E", ["ifrs-full_Equity"], /^자본총계$/], ["LE", ["ifrs-full_EquityAndLiabilities"], /^(자본과부채|부채와자본)총계$/],
+];
+const PL_KEYS = [
+  ["REV", ["ifrs-full_Revenue"], /^(수익\(매출액\)|매출액|매출|영업수익)$/],
+  ["COGS", ["ifrs-full_CostOfSales"], /^매출원가$/],
+  ["GP", ["ifrs-full_GrossProfit"], /^매출총이익(\(손실\))?$/],
+  ["SGA", ["dart_TotalSellingGeneralAdministrativeExpenses", "ifrs-full_SellingGeneralAndAdministrativeExpense"], /^판매비와관리비$/],
+  ["OPEX", ["dart_OperatingExpenses"], /^영업비용$/],
+  ["OI", ["dart_OperatingIncomeLoss", "ifrs-full_ProfitLossFromOperatingActivities"], /^영업(이익|손실|이익\(손실\))$/],
+  ["FI", ["ifrs-full_FinanceIncome"], /^금융수익$/], ["FC", ["ifrs-full_FinanceCosts"], /^금융(원가|비용)$/],
+  ["OG", ["dart_OtherGains", "ifrs-full_OtherIncome"], /^(기타수익|기타이익|영업외수익)$/],
+  ["OL", ["dart_OtherLosses", "ifrs-full_OtherExpense"], /^(기타비용|기타손실|영업외비용)$/],
+  ["EQM", ["ifrs-full_ShareOfProfitLossOfAssociatesAndJointVenturesAccountedForUsingEquityMethod"], /^(지분법|관계기업).*(손익|이익)/],
+  ["PBT", ["ifrs-full_ProfitLossBeforeTax"], /^법인세비용차감전/],
+  ["TAX", ["ifrs-full_IncomeTaxExpenseContinuingOperations"], /^법인세비용/],
+  ["NI", ["ifrs-full_ProfitLoss"], /^당기순(이익|손실|이익\(손실\))$/],
+];
+const NONOP_SIGN = {FI: 1, FC: -1, OG: 1, OL: -1, EQM: 1};
+const kname = a => String(a || "").replace(/\s/g, "");
+const MIL = v => v == null ? null : Math.round(v / 1e6);
+function matchKey(r, table){ for (const [k, ids, re] of table) if (ids.includes(r.id) || re.test(kname(r.account))) return k; return null; }
+
+function buildFin(fin){
+  const n = Math.max(2, +$("finN").value || 3), eqDetail = $("finEq").checked;
+  const bs = fin.rows.filter(r => r.st === "BS").slice().sort((a, b) => (a.ord || 0) - (b.ord || 0));
+  const val = r => [MIL(r.prior), MIL(r.current), null];
+  const head = {}, sec = {CA: [], NCA: [], CL: [], NCL: [], EQ: []};
+  let cur = null;
+  for (const r of bs){
+    const k = matchKey(r, BS_HEAD);
+    if (k){ if (!head[k]) head[k] = r; cur = k === "CA" || k === "NCA" || k === "CL" || k === "NCL" ? k : (k === "EP" ? "EQ" : (k === "NCI" ? null : null));
+      if (k === "NCI") sec.EQ.push(r); continue; }
+    if (cur && sec[cur]) sec[cur].push(r);
+  }
+  const notes = [];
+  if (!bs.some(r => r.ord)) notes.push("커넥터가 계정 묶음 정보(ord)를 아직 주지 않습니다(배포 반영 중). 잠시 뒤 다시 가져오세요.");
+  const out = [];
+  const section = (key, label) => {
+    const h = head[key], items = sec[key];
+    if (!h){ if (items.length) notes.push(`${label} 소계가 공시에 없어 세부 계정을 넣지 않았습니다.`); return; }
+    out.push({account: h.account, level: "sub", values: val(h)});
+    const size = x => Math.abs(x.current || 0) || Math.abs(x.prior || 0);
+    const named = items.filter(x => (x.current || 0) !== 0 || (x.prior || 0) !== 0).sort((a, b) => size(b) - size(a));
+    let keep = named;
+    if (named.length > n) keep = named.filter(x => !/^기타/.test(kname(x.account))).slice(0, n - 1);
+    keep.forEach(x => out.push({account: x.account, level: "item", values: val(x)}));
+    if (keep.length < named.length){
+      const rest = [0, 1].map(i => { const tot = val(h)[i]; if (tot == null) return null; return tot - keep.reduce((a, x) => a + (val(x)[i] || 0), 0); });
+      out.push({account: `기타${label}`, level: "etc", values: [...rest, null]});
+    }
+  };
+  section("CA", "유동자산"); section("NCA", "비유동자산");
+  if (head.A) out.push({account: head.A.account, level: "total", values: val(head.A)});
+  section("CL", "유동부채"); section("NCL", "비유동부채");
+  if (head.L) out.push({account: head.L.account, level: "total", values: val(head.L)});
+  if (eqDetail && head.E){
+    const items = sec.EQ.filter(x => (x.current || 0) !== 0 || (x.prior || 0) !== 0);
+    items.forEach(x => out.push({account: x.account, level: "item", values: val(x)}));
+  }
+  if (head.E) out.push({account: head.E.account, level: "total", values: val(head.E)});
+
+  // 손익계산서: IS가 따로 있으면 IS, 아니면 포괄손익계산서(CIS)의 당기순이익까지
+  const plSt = fin.rows.some(r => r.st === "IS") ? "IS" : "CIS";
+  const pl = fin.rows.filter(r => r.st === plSt).slice().sort((a, b) => (a.ord || 0) - (b.ord || 0));
+  const got = {};
+  for (const r of pl){ const k = matchKey(r, PL_KEYS); if (k && !got[k]) got[k] = r; }
+  const order = PL_KEYS.map(x => x[0]).filter(k => got[k]);
+  const isOut = [];
+  for (const k of order){
+    if (k === "PBT" && got.OI){
+      const raw = [0, 1].map(i => { const pick = r => r ? (i ? r.current : r.prior) || 0 : 0; let x = pick(got.PBT) - pick(got.OI);
+        for (const [kk, sg] of Object.entries(NONOP_SIGN)) x -= sg * pick(got[kk]); return x; });
+      const resid = raw.map(MIL);
+      if (raw.some(x => Math.abs(x) >= 500000)) isOut.push({account: "기타영업외손익", level: "etc", values: [...resid, null]});
+    }
+    const r = got[k];
+    isOut.push({account: r.account, level: ["GP", "OI", "PBT", "NI"].includes(k) ? "sub" : "item", values: val(r)});
+    if (k === "OI" && got.REV){
+      const ratio = [0, 1].map(i => { const rv = val(got.REV)[i], oi = val(r)[i]; return rv ? Math.round(oi / rv * 1000) / 10 : null; });
+      isOut.push({account: "영업이익률", level: "ratio", unit: "%", values: [...ratio, null]});
+    }
+  }
+  if (!got.REV) notes.push("매출액 계정을 찾지 못했습니다. 손익계산서를 확인해 주세요.");
+  const y = +fin.year;
+  return {basis: fin.basis, unit: "백만원", fiscal_year: y,
+    columns: [{label: `${y - 1}(A)`, source: "DART"}, {label: `${y}(A)`, source: "DART"}, {label: "평가기준일", source: "직접 입력"}],
+    balance_sheet: out, income_statement: isOut, notes};
+}
+
+function finSource(){ return state.fin ? {title: `${state.fin.year} 사업보고서 재무제표(${state.fin.basis})`, url: state.fin.url || ""} : null; }
+function finBusy(on){ $("btnFin").disabled = on || !mcpNs; }
+$("btnFin").onclick = async () => {
+  const st = $("finStatus");
+  const corp = $("corp").value.trim() || (dartPick && dartPick.corp_code) || "";
+  const name = corp || $("company").value.replace(/\(가상\)$/, "").trim();
+  if (!name){ st.textContent = "먼저 DART에서 회사를 찾거나 고유번호를 넣어 주세요."; return; }
+  let y = parseInt($("finYear").value, 10);
+  if (!y) y = new Date().getFullYear() - 1;
+  finBusy(true); markEdited();
+  try {
+    let r = null, lastErr = null;
+    for (const yy of [y, y - 1]){
+      st.textContent = `${yy} 사업보고서 재무제표를 가져오는 중…`;
+      try { r = await mcpNs.callTool(DART, "financial_statements", {company: name, year: yy, period: "annual", consolidated: $("finCons").checked, statements: "BS,IS,CIS"}, {cache: {staleTime: 21600000, gcTime: 21600000}}); y = yy; break; }
+      catch (e){ lastErr = e; if (!(e && e.code === "tool_error" && /없습니다/.test(e.message || ""))) break; }
+    }
+    if (!r) throw lastErr;
+    const p = r.payload || {};
+    state.fin = {year: y, basis: p.basis, url: p.url, corp_name: p.corp_name, rows: p.rows || [], notes: p.notes || []};
+    $("finYear").value = y;
+    if (state.result && state.result.company_overview) delete state.result.company_overview.financials;
+    if (!state.result) state.result = {};
+    refreshResult(); saveDraft();
+    st.textContent = `${p.corp_name} ${y - 1}·${y}년 ${p.basis} 재무제표를 넣었습니다. 아래 검토 화면 U1에서 확인하세요.` + ((p.notes || []).length ? " " + p.notes.join(" ") : "");
+  } catch (e){
+    st.textContent = (e && e.code === "tool_error" && /없습니다/.test(e.message || "")) ?
+      "DART에 XBRL 재무제표가 없는 회사입니다(감사보고서만 있는 비상장사 등). 감사보고서 숫자를 직접 넣어 주세요." : dartErr(e);
+  } finally { finBusy(false); }
+};
+for (const id of ["finN", "finEq"]) $(id).addEventListener("change", () => { if (state.result && state.result.company_overview) delete state.result.company_overview.financials; refreshResult(); saveDraft(); });
+
+function finTable(title, rows, cols){
+  const fmt = (v, r) => v == null ? "-" : r.unit === "%" ? `${v.toFixed(1)}%` : (v < 0 ? `(${Math.abs(v).toLocaleString()})` : v.toLocaleString());
+  return `<div><h3>${esc(title)} · ${rows.length}행</h3><div class="tbl-wrap"><table class="t fin"><thead><tr><th>(백만원)</th>${cols.map(c => `<th class="num">${esc(c.label)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(r => `<tr class="${r.level}"><td class="${r.level === "item" || r.level === "etc" ? "ind" : ""}">${esc(r.account)}</td>${r.values.map((v, i) => `<td class="num">${i === 2 && v == null ? (r.level === "ratio" ? "" : `<span class="user">직접 입력</span>`) : fmt(v, r)}</td>`).join("")}</tr>`).join("") +
+    `</tbody></table></div></div>`;
+}
+
+// ---------- 메타 입력 ----------
+for (const id of ["company","asof","corp","rid"]) $(id).addEventListener("input", () => { markEdited(); refreshResult(); saveDraft(); });
+
+function showRid(){ const r = $("rid").value.trim(); $("ridBox").hidden = !r; $("ridShow").textContent = r ? r.slice(0, 8) + "…" : "";
+  if ($("sendRid") && $("sendRid").value.trim() !== r) $("sendRid").value = r; }
+function markEdited(){ if (state.isExample){ state.isExample = false; $("exampleBanner").hidden = true; } }
+
+// ---------- 프롬프트 ----------
+function spec(){
+  const L = LAYOUT, lim = L.limits, out = [];
+  out.push(`- company_overview.basic_info: 객체. 키는 ${BASIC.map(([k,l]) => `${k}(${l})`).join(", ")} 만 사용. 각 값은 {"value": 문자열 ${lim["company_overview.basic_info.*"].chars}자 이내, "source_ids": [...]}. 종업원 수·매출액은 기준 시점을 괄호로(예 186명 (2025년말), 1,850억원 (2025년)).`);
+  out.push(`- company_overview.shareholders: 배열 최대 ${lim["company_overview.shareholders"].rows}개, {"name", "shares": 정수 또는 생략, "pct": 숫자(%), "source_ids"}. 소수 주주는 '기타 주주' 한 줄로 묶어 지분율 합계가 100이 되게. 합계 행은 쓰지 마세요.`);
+  out.push(`- company_overview.shareholders_basis: 주주 현황 기준 시점, 'YYYY년 M월말' 형식(예 2025년 12월말).`);
+  out.push(`- company_overview.history: 배열, 오래된 순. 각 원소 {"period", "events": [문자열...], "source_ids"}. 묶음 수는 최대 ${L.history_slots.length}개이고 i번째 묶음의 events 개수는 최대 [${L.history_slots.join(", ")}][i]. period는 ${lim["company_overview.history[].period"].chars}자 이내(예 2008 또는 2020 ~ 2024). events 각 ${lim["company_overview.history[].events[]"].chars}자 이내, 월은 '03월 법인 설립'처럼 앞에. 앞 묶음은 설립·초기 주요 사건, 마지막 묶음은 최근 몇 년을 모아서.`);
+  out.push(`- company_overview.business_summary: {"text", "source_ids"}. ${lim["company_overview.business_summary"].chars}자 이내(공백 포함). 줄바꿈(\\n)마다 글머리표 한 개. 설립 연혁, 주요 사업, 지배구조(최대주주)를 2~4개 단락으로.`);
+  out.push(`- company_overview.products: 배열 최대 ${lim["company_overview.products"].rows}개, {"name": ${lim["company_overview.products[].name"].chars}자 이내, "description": ${lim["company_overview.products[].description"].chars}자 이내(제품 특성·주요 용도), "source_ids"}. 매출 비중이 큰 순.`);
+  out.push(`- company_overview.business_diagram: 사업 구조 도식. {"title": "사업 구조", "columns": [...], "source_ids": [...]}. columns는 왼쪽→오른쪽 흐름 2~4단: 보통 [원재료·주요 매입처] → [평가대상회사(사업부·공장)] → [주요 제품(매출 비중)] → [주요 고객·전방 산업]. 각 단 {"title": ${lim["company_overview.business_diagram.columns[].title"].chars}자 이내, "is_company": 회사 단이면 true(한 단만), "items": [{"label": ${lim["company_overview.business_diagram.columns[].items[].label"].chars}자 이내, "note": ${lim["company_overview.business_diagram.columns[].items[].note"].chars}자 이내 보조설명(예 '매출 72%', '연 10만톤'), 생략 가능}] 1~4개}. 자료에 나온 이름만 쓰고, 근거가 없는 단은 빼세요(2단 미만이면 키 자체를 빼세요). 고객사 실명은 자료에 있을 때만.`);
+  out.push(`- industry.market: 배열 최대 ${L.market_sections}개, {"heading": ${lim["industry.market[].heading"].chars}자 이내 소제목, "text": ${lim["industry.market[]"].chars}자 이내, "source_ids"}. 첫째는 대상 제품 시장, 둘째는 전방 산업 또는 핵심 시장 지표. 산업 정의 → 시장 규모 → 성장 요인 순. 출처 표기는 자동으로 붙으니 본문에 쓰지 마세요.`);
+  out.push(`- industry.charts: 배열 최대 ${L.charts}개, {"title": ${lim["industry.charts[].title"].chars}자 이내, "unit": "조원" 등, "chart_type": "column" 또는 "line", "points": [{"label": "2025", "value": 숫자, "is_forecast": 전망치면 true}] 2~12개, "source_ids"}. 전망치 라벨은 2026E처럼. 연도별 숫자가 없으면 빈 배열.`);
+  return out.join("\n");
+}
+
+function buildPrompt(){
+  const mktIds = state.sources.map((s, i) => MARKET_SRC.includes(s.type) && s.text.trim() ? `S${i+1}` : null).filter(Boolean);
+  const mats = state.sources.map((s, i) => `=== S${i+1} | ${s.title || "(제목 없음)"} | ${s.type} ===\n${s.text.trim()}`).join("\n\n");
+  return `당신은 회계법인 평가보고서의 '회사개요·산업' 장표 초안을 작성합니다. 아래 [자료]만 근거로 JSON 하나를 씁니다.
+
+규칙
+1. 자료에 없는 사실·숫자는 쓰지 않습니다. 근거가 없는 항목은 키 자체를 빼세요(빈 문자열·null 금지).
+2. 모든 항목의 source_ids에 근거 자료 ID(S1, S2 …)를 넣습니다. 목록에 없는 ID는 쓰지 않습니다.
+3. 문체는 보고서체(~입니다, ~하였습니다). 수식어 없이 간결하게. 금액은 억원·조원 단위로.
+4. 글자 수 한도(공백 포함)를 반드시 지킵니다. 한도를 넘길 바에는 내용을 줄이세요.
+5. 출력은 JSON 객체 하나뿐입니다. 최상위 키는 "company_overview", "industry" 두 개만.
+6. ${mktIds.length ? `company_overview는 모든 자료로 씁니다. industry(시장 현황·차트)는 ${mktIds.join(", ")}만 근거로 쓰고, DART 공시(사업보고서의 산업 서술 포함)는 industry에 쓰지 않습니다.` : "company_overview만 씁니다. 시장 자료가 없으므로 industry는 빈 객체 {}로 두세요."}
+
+[대상회사] ${$("company").value.trim() || "(자료 참고)"}
+
+[작성할 항목]
+${spec()}
+
+[자료]
+${mats}`;
+}
+
+// ---------- 결과 조립·정리 ----------
+function sourcesOut(){
+  return state.sources.map((s, i) => {
+    const o = {id: `S${i+1}`, title: (s.title || `자료 ${i+1}`).trim(), type: s.type, accessed: today()};
+    if (s.url && s.url.trim()) o.url = s.url.trim();
+    return o;
+  });
+}
+function clean(v){
+  if (Array.isArray(v)) return v.map(clean).filter(x => x !== undefined);
+  if (v && typeof v === "object"){
+    const o = {};
+    for (const [k, x] of Object.entries(v)){ const c = clean(x); if (c !== undefined && c !== null && c !== "" && !(Array.isArray(c) && !c.length && k !== "source_ids")) o[k] = c; }
+    return Object.keys(o).length ? o : undefined;
+  }
+  return v === null || v === "" ? undefined : v;
+}
+function shape(raw){
+  // 이 유형에서 쓰는 키만 남김 (서버는 모르는 키를 거절하므로)
+  const L = LAYOUT, notes = [];
+  const co = (raw && raw.company_overview) || {}, ind = (raw && raw.industry) || {};
+  const keepCo = {};
+  const allowedCo = L.fields.filter(f => f.startsWith("company_overview.")).map(f => f.split(".")[1]);
+  for (const [k, v] of Object.entries(co)){
+    if (allowedCo.includes(k)) keepCo[k] = v; else notes.push(`company_overview.${k}`);
+  }
+  // 형식 보정: 문자열로 온 값을 약속한 객체 모양으로
+  const txt = v => typeof v === "string" ? {text: v, source_ids: []} : v;
+  if (typeof keepCo.business_summary === "string") keepCo.business_summary = txt(keepCo.business_summary);
+  if (keepCo.basic_info && typeof keepCo.basic_info === "object")
+    for (const [k, v] of Object.entries(keepCo.basic_info)) if (typeof v === "string") keepCo.basic_info[k] = {value: v, source_ids: []};
+  for (const k of ["history", "shareholders", "products"]) if (k in keepCo && !Array.isArray(keepCo[k])){ delete keepCo[k]; notes.push(`company_overview.${k}(형식 오류)`); }
+  if (Array.isArray(keepCo.products)) keepCo.products = keepCo.products.map(x => typeof x === "string" ? {name: x, source_ids: []} : x);
+  if (Array.isArray(keepCo.history)) keepCo.history.forEach(g => { if (g && typeof g.events === "string") g.events = [g.events]; });
+  const dg = keepCo.business_diagram;
+  if (dg && (typeof dg !== "object" || !Array.isArray(dg.columns))){ delete keepCo.business_diagram; notes.push("business_diagram(형식 오류)"); }
+  else if (dg){ dg.columns = dg.columns.filter(c => c && Array.isArray(c.items) && c.items.length).slice(0, 4)
+      .map(c => ({...c, items: c.items.map(it => typeof it === "string" ? {label: it} : it).filter(it => it && it.label).slice(0, 4)}));
+    if (dg.columns.length < 2){ delete keepCo.business_diagram; notes.push("business_diagram(2단 미만)"); } }
+  if (Array.isArray(ind.market)) ind.market = ind.market.map(x => typeof x === "string" ? {heading: "", text: x, source_ids: []} : x);
+  if (keepCo.basic_info){
+    const keys = BASIC.map(x => x[0]);
+    for (const k of Object.keys(keepCo.basic_info)) if (!keys.includes(k)){ delete keepCo.basic_info[k]; notes.push(`basic_info.${k}`); }
+  }
+  const keepInd = {};
+  const mktOk = new Set(state.sources.map((s, i) => MARKET_SRC.includes(s.type) ? `S${i+1}` : null).filter(Boolean));
+  const onlyMkt = x => { if (x && Array.isArray(x.source_ids)){ const bad = x.source_ids.filter(id => !mktOk.has(id)); if (bad.length){ x.source_ids = x.source_ids.filter(id => mktOk.has(id)); notes.push(`시장 현황의 DART 출처 ${bad.join(",")}`); } } return x; };
+  if (Array.isArray(ind.market)) ind.market.forEach(onlyMkt);
+  if (Array.isArray(ind.charts)) ind.charts.forEach(onlyMkt);
+  if (Array.isArray(ind.market)) keepInd.market = ind.market.slice(0, L.market_sections);
+  if (Array.isArray(ind.charts)) keepInd.charts = ind.charts.slice(0, L.charts);
+  const out = {company_overview: clean(keepCo), industry: clean(keepInd)};
+  return {out, notes};
+}
+function assemble(body){
+  const rid = $("rid").value.trim();
+  const meta = {schema_version: "2.0", layout: "unified", report_id: rid || "manual",
+    company_name: $("company").value.trim() || "(미입력)", as_of: $("asof").value || today()};
+  const corp = $("corp").value.trim(); if (corp) meta.corp_code = corp;
+  const o = {meta};
+  const srcs = sourcesOut();
+  const co = body.company_overview ? {...body.company_overview} : {};
+  if (!co.financials && state.fin){
+    const fs = finSource(), id = `S${srcs.length + 1}`;
+    srcs.push({id, title: fs.title, type: "dart", accessed: today(), ...(fs.url ? {url: fs.url} : {})});
+    const b = buildFin(state.fin); co.financials = {...b, source_ids: [id]};
+  }
+  if (Object.keys(co).length) o.company_overview = co;
+  if (body.industry) o.industry = body.industry;
+  o.sources = srcs;
+  return o;
+}
+
+// ---------- 검사 (서버와 같은 규칙) ----------
+function walk(data, key, path, out){
+  if (!key){ out.push([path, data]); return; }
+  const i = key.indexOf("."); const head = i < 0 ? key : key.slice(0, i), rest = i < 0 ? "" : key.slice(i+1);
+  if (head === "*"){ if (data && typeof data === "object" && !Array.isArray(data)) for (const [k, v] of Object.entries(data)) if (v != null) walk(v, rest, path ? `${path}.${k}` : k, out); return; }
+  const isList = head.endsWith("[]"), name = isList ? head.slice(0, -2) : head;
+  if (!data || typeof data !== "object" || data[name] == null) return;
+  const child = data[name], cp = path ? `${path}.${name}` : name;
+  if (isList){ if (Array.isArray(child)) child.forEach((x, j) => walk(x, rest, `${cp}[${j}]`, out)); }
+  else walk(child, rest, cp, out);
+}
+function textOf(n){ if (typeof n === "string") return n; if (n && typeof n === "object"){ if (typeof n.text === "string") return n.text; if (typeof n.value === "string") return n.value; } return null; }
+function check(p){
+  const errors = [], warns = [], L = LAYOUT;
+  const add = (arr, path, msg, extra) => arr.push({path, msg, ...(extra || {})});
+  if (!p || typeof p !== "object"){ add(errors, "(전체)", "JSON 객체가 아닙니다."); return {errors, warns}; }
+  const m = p.meta || {};
+  if (!m.report_id || m.report_id === "manual") add(warns, "meta.report_id", "보고서 ID가 없습니다. 아래 '보고서로 보내기'에 보고서 앱의 보고서 ID를 넣어 주세요.");
+  else if (!/^[a-f0-9]{64}$/.test(m.report_id)) add(errors, "meta.report_id", "보고서 ID는 64자리 영문 소문자·숫자입니다.");
+  if (m.corp_code && !/^\d{8}$/.test(m.corp_code)) add(errors, "meta.corp_code", "DART 고유번호는 8자리 숫자입니다.");
+  for (const [key, rule] of Object.entries(L.limits)){
+    const hits = []; walk(p, key, "", hits);
+    for (const [path, node] of hits){
+      if (rule.rows && Array.isArray(node) && node.length > rule.rows) add(errors, path, `${node.length}개 / 한도 ${rule.rows}개 — ${node.length - rule.rows}개 줄여 주세요.`);
+      if (rule.chars){ const s = textOf(node); if (s != null && len(s) > rule.chars) add(errors, path, `${len(s)}자 / 한도 ${rule.chars}자 — ${len(s) - rule.chars}자 줄여 주세요.`, {chars: rule.chars}); }
+    }
+  }
+  const co = p.company_overview || {}, ind = p.industry || {};
+  if (L.history_slots && Array.isArray(co.history)){
+    co.history.forEach((g, i) => {
+      const cap = L.history_slots[i];
+      if (cap !== undefined && Array.isArray(g.events) && g.events.length > cap) add(errors, `company_overview.history[${i}]`, `이 묶음은 ${cap}줄까지 들어갑니다 (현재 ${g.events.length}줄).`);
+      if (!/^\d{4}( ?~ ?\d{4})?$/.test(g.period || "")) add(errors, `company_overview.history[${i}].period`, "기간은 2008 또는 2012 ~ 2019 형식입니다.");
+      if (!Array.isArray(g.events) || !g.events.length) add(errors, `company_overview.history[${i}].events`, "사건이 최소 1줄 필요합니다.");
+    });
+  }
+  if (co.shareholders_basis && !/^\d{4}년 \d{1,2}월말$/.test(co.shareholders_basis)) add(errors, "company_overview.shareholders_basis", "'2025년 12월말' 형식입니다.");
+  if (Array.isArray(co.shareholders) && co.shareholders.length){
+    const tot = Math.round(co.shareholders.reduce((a, s) => a + (+s.pct || 0), 0) * 100) / 100;
+    if (tot > 100.1) add(errors, "company_overview.shareholders", `지분율 합계 ${tot}% — 100%를 넘습니다.`);
+    else if (tot < 99.9) add(warns, "company_overview.shareholders", `지분율 합계 ${tot}% — '기타 주주' 행을 넣으면 100%가 됩니다.`);
+  }
+  const mkt = new Set((p.sources || []).filter(s => MARKET_SRC.includes(s.type)).map(s => s.id));
+  [...(ind.market || []).map((x, i) => [x, `industry.market[${i}]`]), ...(ind.charts || []).map((x, i) => [x, `industry.charts[${i}]`])].forEach(([x, path]) =>
+    (x.source_ids || []).forEach(id => { if (!mkt.has(id)) add(warns, path, `${id}는 기사·웹·회사 제공 자료가 아닙니다. 시장 현황 출처를 확인하세요.`); }));
+  (ind.charts || []).forEach((c, i) => {
+    const pts = c.points || [];
+    if (pts.length < 2 || pts.length > 12) add(errors, `industry.charts[${i}].points`, "차트 값은 2~12개입니다.");
+    const labs = pts.map(x => x.label); if (new Set(labs).size !== labs.length) add(errors, `industry.charts[${i}].points`, "가로축 라벨이 중복됩니다.");
+    if (pts.some(x => typeof x.value !== "number" || !isFinite(x.value))) add(errors, `industry.charts[${i}].points`, "값은 숫자여야 합니다.");
+    if (!c.unit) add(errors, `industry.charts[${i}].unit`, "단위가 필요합니다.");
+  });
+  const ids = new Set((p.sources || []).map(s => s.id)), used = new Set();
+  (function scan(v, path){
+    if (Array.isArray(v)) v.forEach((x, i) => scan(x, `${path}[${i}]`));
+    else if (v && typeof v === "object"){
+      if ("source_ids" in v){ const s = v.source_ids || []; s.forEach(x => { used.add(x); if (!ids.has(x)) add(errors, path, `출처 ${x}가 자료 목록에 없습니다.`); }); if (!s.length) add(warns, path, "출처 없음 — 리뷰어 확인 필요"); }
+      for (const [k, x] of Object.entries(v)) if (!["source_ids","sources","meta"].includes(k)) scan(x, path ? `${path}.${k}` : k);
+    }
+  })({company_overview: p.company_overview, industry: p.industry}, "");
+  for (const s of p.sources || []) if (!used.has(s.id)) add(warns, "sources", `출처 ${s.id}(${s.title})는 어떤 칸에도 쓰이지 않았습니다.`);
+  const dgm = (p.company_overview || {}).business_diagram;
+  if (dgm){
+    const cs = Array.isArray(dgm.columns) ? dgm.columns : [];
+    if (cs.length < 2 || cs.length > 4) add(errors, "company_overview.business_diagram.columns", "도식은 2~4단입니다.");
+    cs.forEach((c, i) => { const n = (c.items || []).length; if (n < 1 || n > 4) add(errors, `company_overview.business_diagram.columns[${i}].items`, "단마다 1~4칸입니다."); });
+    if (cs.filter(c => c.is_company).length > 1) add(warns, "company_overview.business_diagram", "회사(강조) 단이 2개 이상입니다.");
+  }
+  const fin = (p.company_overview || {}).financials;
+  if (fin){
+    if ((fin.balance_sheet || []).length > 20) add(warns, "company_overview.financials.balance_sheet", `${fin.balance_sheet.length}행 — 마스터 표(20행)보다 많습니다. 항목별 하위 계정 수를 줄이거나 표에 행을 추가하세요.`);
+    if ((fin.income_statement || []).length > 14) add(warns, "company_overview.financials.income_statement", `${fin.income_statement.length}행 — 장표 오른쪽 칸을 넘을 수 있습니다.`);
+    (fin.notes || []).forEach(n => add(warns, "company_overview.financials", n));
+  }
+  if (!p.company_overview && !p.industry) add(errors, "(전체)", "채울 내용이 없습니다.");
+  return {errors, warns};
+}
+
+// ---------- 검토 화면 ----------
+function sid(o){ const s = (o && o.source_ids) || []; return s.length ? `<span class="sids">${esc(s.join(","))}</span>` : `<span class="sids none">출처 없음</span>`; }
+function cnt(s, max){ if (!max) return ""; const n = len(s); return `<span class="cnt ${n > max ? "over" : ""}">${n}/${max}</span>`; }
+function renderReview(p){
+  try { renderReviewInner(p); }
+  catch (e){
+    console.error(e);
+    $("paneRv").innerHTML = `<div class="empty">결과 형식이 예상과 달라 미리보기를 그리지 못했습니다(${esc(e.message)}). 초안을 다시 작성해 주세요.</div>`;
+  }
+}
+function renderReviewInner(p){
+  const pane = $("paneRv"), L = LAYOUT, lim = L.limits;
+  if (!p){ pane.innerHTML = `<div class="empty">아직 결과가 없습니다. 자료를 넣고 <b>Claude로 초안 작성</b>을 누르세요.</div>`; return; }
+  const co = p.company_overview || {}, ind = p.industry || {}, B = {};
+  if (co.basic_info){
+    B.basic = (`<div><h3>회사현황 표</h3><div class="kv">` + BASIC.map(([k, l]) => { const v = co.basic_info[k]; return `<span class="k">${esc(l)}</span><span>${v ? esc(v.value) + sid(v) : `<span class="sids none">빈칸 — 장표에 [기재]로 남음</span>`}</span>${v ? cnt(v.value, lim["company_overview.basic_info.*"].chars) : "<span></span>"}`; }).join("") + `</div></div>`);
+  }
+  if (co.business_summary) B.summary = (`<div><h3>회사의 이해 ${cnt(co.business_summary.text, lim["company_overview.business_summary"].chars)}${sid(co.business_summary)}</h3><div class="para">${esc(co.business_summary.text)}</div></div>`);
+  if (L.history_slots && co.history){
+    B.history = (`<div><h3>연혁 · 묶음별 줄 수 [${L.history_slots.join(", ")}]</h3><div class="tbl-wrap"><table class="t"><thead><tr><th>기간</th><th>사건</th><th>칸</th></tr></thead><tbody>` +
+      co.history.map((g, i) => `<tr><td class="mono">${esc(g.period)}</td><td>${(g.events || []).map(esc).join("<br>")}${sid(g)}</td><td class="cnt ${(g.events||[]).length > (L.history_slots[i] ?? 0) ? "over" : ""}">${(g.events||[]).length}/${L.history_slots[i] ?? 0}</td></tr>`).join("") + `</tbody></table></div></div>`);
+  }
+  if (co.shareholders){
+    const tot = co.shareholders.reduce((a, s) => a + (+s.pct || 0), 0), sh = co.shareholders.map(s => s.shares);
+    B.sh = (`<div><h3>주주 현황${co.shareholders_basis ? ` (${esc(co.shareholders_basis)} 기준)` : ""}</h3><div class="tbl-wrap"><table class="t"><thead><tr><th>구분</th><th>보통주 (주)</th><th>지분율 (%)</th></tr></thead><tbody>` +
+      co.shareholders.map(s => `<tr><td>${esc(s.name)}${sid(s)}</td><td class="num">${s.shares != null ? Number(s.shares).toLocaleString() : "-"}</td><td class="num">${(+s.pct).toFixed(2)}%</td></tr>`).join("") +
+      `<tr><td><b>합계</b></td><td class="num">${sh.every(x => x != null) ? sh.reduce((a, b) => a + b, 0).toLocaleString() : "-"}</td><td class="num"><b>${tot.toFixed(2)}%</b></td></tr></tbody></table></div></div>`);
+  }
+  if (co.products) B.products = (`<div><h3>주요 제품</h3>` + co.products.map(x => `<div class="para"><b>${esc(x.name)}</b>${sid(x)} ${cnt(x.description, lim["company_overview.products[].description"].chars)}<br>${esc(x.description || "")}</div>`).join("") + `</div>`);
+  B.market = []; (ind.market || []).forEach((mk, i) => B.market.push(`<div><h3>시장 현황 ${i+1}${mk.heading ? " · " + esc(mk.heading) : ""} ${cnt(mk.text, lim["industry.market[]"].chars)}${sid(mk)}</h3><div class="para">${esc(mk.text)}</div></div>`));
+  B.charts = []; (ind.charts || []).forEach((c, i) => {
+    const pts = c.points || [], mx = Math.max(...pts.map(x => +x.value || 0), 1);
+    B.charts.push(`<div><h3>차트 ${i+1} · ${esc(c.title)} (단위: ${esc(c.unit)})${sid(c)}</h3>
+      <div class="bars" role="img" aria-label="${esc(c.title)}">${pts.map(x => `<div class="bar"><span>${esc(x.value)}</span><i class="${x.is_forecast ? "fc" : ""}" style="height:${Math.max(2, (+x.value || 0) / mx * 90)}%"></i></div>`).join("")}</div>
+      <div class="bar-lab">${pts.map(x => `<span>${esc(x.label)}</span>`).join("")}</div></div>`);
+  });
+  if (co.business_diagram && Array.isArray(co.business_diagram.columns)){
+    const d = co.business_diagram, L2 = lim;
+    B.diagram = `<div><h3>사업 구조 도식${sid(d)}</h3><div class="dg">` + d.columns.map((c, i) =>
+      (i ? `<div class="dg-ar" aria-hidden="true">→</div>` : "") + `<div class="dg-col"><div class="dg-h">${esc(c.title || "")}</div>` +
+      (c.items || []).map(it => `<div class="dg-it ${c.is_company ? "co" : ""}"><b>${esc(it.label)}</b>${it.note ? `<span>${esc(it.note)}</span>` : ""}${cnt(it.label, L2["company_overview.business_diagram.columns[].items[].label"].chars).replace('<span class="cnt ', '<span class="cnt hide-ok ')}</div>`).join("") + `</div>`).join("") + `</div></div>`;
+  }
+  if (co.financials && co.financials.columns){
+    const f = co.financials;
+    B.fin = `<div><h3>재무정보 · ${esc(f.basis || "")} · 단위 ${esc(f.unit || "")}${sid(f)}</h3></div><div class="fin-grid">` +
+      finTable("재무상태표", f.balance_sheet || [], f.columns) + finTable("손익계산서", f.income_statement || [], f.columns) + `</div>`;
+  }
+  const drafted = !!(p.company_overview && Object.keys(p.company_overview).some(k => k !== "financials")) || !!p.industry;
+  const grp = (t, parts, why) => { const x = parts.flat().filter(Boolean);
+    return `<div class="grp">${t}</div>` + (x.length ? x.join("") : `<div class="empty">${why}</div>`); };
+  const notYet = "아직 작성 전입니다. 3단계 <b>Claude로 초안 작성</b>을 누르면 채워집니다.";
+  pane.innerHTML = grp("U1 · 회사 개요 · 주주 · 연혁 · 재무정보", [B.basic, B.sh, B.history, B.fin], drafted ? "자료에서 근거를 찾지 못해 비었습니다. DART 자료가 들어갔는지 확인해 주세요." : notYet) +
+    grp("U2 · 회사의 이해 · 제품 · 사업 구조", [B.summary, B.products, B.diagram], drafted ? "자료에서 근거를 찾지 못해 비었습니다. DART 자료가 들어갔는지 확인해 주세요." : notYet) +
+    grp("U3 · 시장 현황", [B.market, B.charts], drafted ? "시장 자료(기사·웹·회사 제공)가 없어 비워 두었습니다. 링크를 가져온 뒤 초안을 다시 작성하세요." : notYet);
+}
+// ---------- 오류 위치를 사람이 읽는 이름으로 + 그 자리에서 바로 고치기 ----------
+function pathSegs(path){ return String(path).replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean).map(x => /^\d+$/.test(x) ? +x : x); }
+function getAt(o, path){ let n = o; for (const k of pathSegs(path)){ if (n == null) return undefined; n = n[k]; } return n; }
+function setAt(o, path, v){ const ks = pathSegs(path); let n = o; for (const k of ks.slice(0, -1)){ if (n[k] == null) return false; n = n[k]; } n[ks[ks.length - 1]] = v; return true; }
+const BASIC_LABEL = Object.fromEntries(BASIC);
+function pathLabel(path, p){
+  const g = pathSegs(path), at = (...k) => getAt(p, k.join(".")), nth = i => `${i + 1}번째`;
+  const short = s => { s = String(s ?? ""); return s.length > 14 ? s.slice(0, 14) + "…" : s; };
+  if (g[0] === "meta") return "보고서 정보";
+  if (g[0] === "company_overview"){
+    const k = g[1];
+    if (k === "basic_info") return `U1 회사 개요 · ${BASIC_LABEL[g[2]] || g[2] || ""}`;
+    if (k === "shareholders") return g.length > 2 ? `U1 주주 현황 · ${nth(g[2])} 주주(${short((at("company_overview", "shareholders", g[2]) || {}).name)})` : "U1 주주 현황";
+    if (k === "shareholders_basis") return "U1 주주 현황 · 기준시점";
+    if (k === "history"){
+      if (g.length < 3) return "U1 주요 연혁";
+      const grp = at("company_overview", "history", g[2]) || {};
+      return `U1 주요 연혁 · ${nth(g[2])} 기간(${short(grp.period)})` + (g[3] === "events" && g.length > 4 ? ` · ${nth(g[4])} 줄` : g[3] === "period" ? " · 기간 표시" : "");
+    }
+    if (k === "business_summary") return "U2 회사의 이해";
+    if (k === "products") return g.length > 2 ? `U2 주요 제품 · ${nth(g[2])}(${short((at("company_overview", "products", g[2]) || {}).name)})` + (g[3] === "description" ? " · 설명" : g[3] === "name" ? " · 제품명" : "") : "U2 주요 제품";
+    if (k === "business_diagram"){
+      if (g[2] !== "columns" || g.length < 4) return "U2 사업 구조 도식";
+      const col = at("company_overview", "business_diagram", "columns", g[3]) || {};
+      return `U2 사업 구조 도식 · ${short(col.title) || nth(g[3]) + " 단"}` + (g[4] === "items" && g.length > 5 ? ` · ${nth(g[5])} 칸` : g[4] === "title" ? " · 단 제목" : "");
+    }
+    if (k === "financials") return "U1 재무정보";
+  }
+  if (g[0] === "industry"){
+    if (g[1] === "market") return g.length > 2 ? `U3 시장 현황 ${g[2] + 1}` + (g[3] === "heading" ? " · 소제목" : " · 본문") : "U3 시장 현황";
+    if (g[1] === "charts") return g.length > 2 ? `U3 시장 차트 ${g[2] + 1}` + (g[3] === "title" ? " · 제목" : "") : "U3 시장 차트";
+  }
+  return path;
+}
+function issueItem(e, p){
+  const node = getAt(p, e.path), txt = textOf(node);
+  const target = typeof node === "string" ? e.path : node && typeof node.text === "string" ? e.path + ".text" : node && typeof node.value === "string" ? e.path + ".value" : null;
+  let fix = "";
+  if (e.chars && target && txt != null){
+    const big = len(txt) > 60;
+    fix = `<div class="fix">${big ? `<textarea data-fix="${esc(target)}" data-max="${e.chars}" rows="4">${esc(txt)}</textarea>` : `<input type="text" data-fix="${esc(target)}" data-max="${e.chars}" value="${esc(txt)}">`}
+      <span class="cnt over" data-cnt>${len(txt)}/${e.chars}</span><button class="btn ghost" type="button" data-apply>고치기</button></div>`;
+  } else if (txt != null && !e.path.startsWith("meta")){ fix = ` <span class="snip">“${esc(txt.length > 60 ? txt.slice(0, 60) + "…" : txt)}”</span>`; }
+  return `<li><b>${esc(pathLabel(e.path, p))}</b> ${esc(e.msg)}${fix}</li>`;
+}
+function wireFixes(box){
+  box.querySelectorAll(".fix").forEach(f => {
+    const inp = f.querySelector("[data-fix]"), c = f.querySelector("[data-cnt]"), max = +inp.dataset.max;
+    const upd = () => { const n = len(inp.value); c.textContent = `${n}/${max}`; c.classList.toggle("over", n > max); };
+    inp.addEventListener("input", upd);
+    const apply = () => {
+      let p; try { p = JSON.parse(JSON.stringify(state.edited)); } catch { return; }
+      if (!setAt(p, inp.dataset.fix, inp.value)) return;
+      $("jsonEd").value = JSON.stringify(p, null, 2); markEdited(); refreshResult(true); saveDraft();
+    };
+    f.querySelector("[data-apply]").onclick = apply;
+    if (inp.tagName === "INPUT") inp.addEventListener("keydown", ev => { if (ev.key === "Enter"){ ev.preventDefault(); apply(); } });
+  });
+}
+function renderIssues(res, notes){
+  const box = $("issues");
+  if (!state.result){ box.innerHTML = ""; return; }
+  const parts = [], p = state.edited || {};
+  parts.push(res.errors.length ? `<span class="pill bad">오류 ${res.errors.length}건 — 고쳐야 보낼 수 있습니다</span>` : `<span class="pill ok">보낼 수 있습니다</span>`);
+  if (res.errors.length) parts.push(`<ul class="issue-list">${res.errors.map(e => issueItem(e, p)).join("")}</ul>`);
+  if (res.warns.length) parts.push(`<span class="pill warn">확인 필요 ${res.warns.length}건</span><ul class="issue-list">${res.warns.map(e => issueItem(e, p)).join("")}</ul>`);
+  if (notes && notes.length) parts.push(`<span class="pill warn">양식에 없거나 규칙에 맞지 않아 뺀 항목: ${esc(notes.join(", "))}</span>`);
+  box.innerHTML = parts.join("");
+  wireFixes(box);
+}
+
+let lastNotes = [];
+function refreshResult(fromEditor){
+  if (!state.result){ renderReview(null); renderIssues(null); $("jsonEd").value = ""; $("btnSave").disabled = $("btnCopy").disabled = true; return; }
+  let p;
+  if (fromEditor){
+    try { p = JSON.parse($("jsonEd").value); }
+    catch (e){ $("issues").innerHTML = `<span class="pill bad">JSON 형식 오류 — ${esc(e.message)}</span>`; $("btnSave").disabled = $("btnCopy").disabled = true; return; }
+    state.result = {company_overview: p.company_overview, industry: p.industry};
+    state.edited = p;
+  } else {
+    p = assemble(state.result);
+    state.edited = p;
+    $("jsonEd").value = JSON.stringify(p, null, 2);
+  }
+  const res = check(p);
+  renderReview(p); renderIssues(res, fromEditor ? [] : lastNotes);
+  $("btnSave").disabled = $("btnCopy").disabled = false;
+}
+let edTimer; $("jsonEd").addEventListener("input", () => { clearTimeout(edTimer); edTimer = setTimeout(() => { markEdited(); refreshResult(true); }, 350); });
+
+// ---------- 탭 ----------
+function tab(which){ $("tabRv").setAttribute("aria-selected", String(which === "rv")); $("tabJs").setAttribute("aria-selected", String(which === "js")); $("paneRv").hidden = which !== "rv"; $("paneJs").hidden = which !== "js"; }
+$("tabRv").onclick = () => { if (state.result) refreshResult(); tab("rv"); }; $("tabJs").onclick = () => tab("js");
+
+// ---------- 작성 ----------
+const ERR = {
+  not_granted: "이 화면이 Claude를 쓰도록 허용되지 않았습니다. 허용 후 다시 열어 주세요.",
+  sampling_disabled: "이 계정에서는 Claude 호출을 쓸 수 없습니다.",
+  rate_limited: "사용량 한도에 걸렸습니다. 잠시 뒤 다시 눌러 주세요.",
+  prompt_too_large: "자료가 너무 깁니다. 필요한 부분만 남겨 주세요.",
+  invalid_json: "결과 형식이 깨졌습니다. 한 번 더 눌러 주세요.",
+  refused: "Claude가 이 요청을 처리하지 않았습니다. 자료 내용을 확인해 주세요.",
+  session_expired: "로그인이 만료되었습니다. 다시 로그인해 주세요.",
+  empty_completion: "결과가 비어 있습니다. 자료를 보강해 주세요.",
+};
+$("btnGen").onclick = async () => {
+  const st = $("genStatus");
+  if (!sampleFn){ st.textContent = "이 화면에서는 Claude를 호출할 수 없습니다(claude.ai에서 열어 주세요)."; return; }
+  if (!state.sources.some(s => s.text.trim())){ st.textContent = "자료를 1개 이상 붙여넣어 주세요."; return; }
+  if (totalChars() > MAX_MATERIAL){ st.textContent = `자료가 ${MAX_MATERIAL.toLocaleString()}자를 넘습니다. 필요한 부분만 남겨 주세요.`; return; }
+  markEdited();
+  ctl = new AbortController();
+  $("btnGen").disabled = true; $("btnStop").hidden = false; st.textContent = "작성 중… (보통 30초~2분)";
+  try {
+    const raw = await sampleFn.json(buildPrompt(), {signal: ctl.signal, modelTier: "default", cache: false, onText: ({text}) => { st.textContent = `작성 중… ${len(text).toLocaleString()}자`; }});
+    const {out, notes} = shape(raw);
+    lastNotes = notes;
+    state.result = out; refreshResult(); tab("rv");
+    st.textContent = "완료. 아래에서 검토하세요.";
+    saveDraft();
+  } catch (e){
+    st.textContent = e && e.code === "cancelled" ? "중지했습니다." : (ERR[e && e.code] || "작성 중 문제가 생겼습니다. 다시 눌러 주세요.");
+  } finally {
+    $("btnGen").disabled = false; $("btnStop").hidden = true; ctl = null;
+  }
+};
+$("btnStop").onclick = () => ctl && ctl.abort();
+
+// ---------- 보고서 앱으로 보내기 ----------
+$("sendRid").addEventListener("input", () => {
+  const v = $("sendRid").value.trim().toLowerCase().replace(/[^a-f0-9]/g, "");
+  $("rid").value = v; showRid(); refreshResult(); saveDraft(); $("btnSendForce").hidden = true;
+});
+async function sendResearch(force){
+  const st = $("sendStatus"), rid = $("rid").value.trim();
+  $("btnSendForce").hidden = true;
+  if (!/^[a-f0-9]{64}$/.test(rid)){ st.textContent = "보고서 앱 화면의 64자리 보고서 ID를 넣어 주세요."; return; }
+  if (!state.edited){ st.textContent = "보낼 결과가 없습니다. 초안을 먼저 작성해 주세요."; return; }
+  const res = check(state.edited);
+  if (res.errors.length){ st.textContent = `오류 ${res.errors.length}건을 먼저 고쳐 주세요.`; return; }
+  if (!mcpNs){ st.textContent = `claude.ai에서 '${DART}' 커넥터를 켜고 열어 주세요.`; return; }
+  $("btnSend").disabled = true;
+  try {
+    if (!force){
+      st.textContent = "보고서를 확인하는 중…";
+      const s0 = (await mcpNs.callTool(DART, "report_status", {report_id: rid})).payload || {};
+      const a = kname(s0.company || "").replace(/\(주\)|㈜|주식회사/g, ""), b = kname(state.edited.meta.company_name || "").replace(/\(주\)|㈜|주식회사|\(가상\)/g, "");
+      if (a && b && !a.includes(b) && !b.includes(a)){
+        st.textContent = `이 보고서는 '${s0.company}' ${s0.report_type || ""} 보고서인데, 리서치는 '${state.edited.meta.company_name}'입니다. 맞으면 '그래도 보내기'를 누르세요.`;
+        $("btnSendForce").hidden = false; return;
+      }
+    }
+    st.textContent = "보내는 중…";
+    const r = (await mcpNs.callTool(DART, "send_research", {report_id: rid, research: state.edited})).payload || {};
+    st.innerHTML = esc(`${r.company || ""} ${r.report_type || ""} 보고서에 보냈습니다. ${r.message || ""}` + ((r.warnings || []).length ? " · " + r.warnings.join(" / ") : "")) +
+      ` <b style="color:var(--bad)">생성된 내용은 작성자가 반드시 검토합니다.</b>`;
+  } catch (e){ st.textContent = dartErr(e); }
+  finally { $("btnSend").disabled = false; }
+}
+$("btnSend").onclick = () => sendResearch(false);
+$("btnSendForce").onclick = () => sendResearch(true);
+
+// ---------- 내려받기 ----------
+function fileName(){ const c = ($("company").value.trim() || "회사").replace(/[\\/:*?"<>|]/g, ""); return `리서치_${c}.json`; }
+$("btnSave").onclick = async () => {
+  const st = $("saveStatus");
+  if (!state.edited) return;
+  const res = check(state.edited);
+  if (res.errors.length){ st.textContent = `오류 ${res.errors.length}건을 먼저 고쳐 주세요.`; return; }
+  if (!downloadsNs){ st.textContent = "이 화면에서는 파일 저장을 쓸 수 없습니다. 복사 버튼을 쓰세요."; return; }
+  try { await downloadsNs.save({filename: fileName(), data: JSON.stringify(state.edited, null, 2)}); st.textContent = "저장했습니다."; }
+  catch (e){ st.textContent = e && e.code === "declined" ? "저장을 취소했습니다." : "저장하지 못했습니다. 복사 버튼을 쓰세요."; }
+};
+$("btnCopy").onclick = () => {
+  const txt = JSON.stringify(state.edited, null, 2), st = $("saveStatus");
+  navigator.clipboard.writeText(txt).then(() => st.textContent = "복사했습니다.", () => { tab("js"); $("jsonEd").select(); st.textContent = "JSON 칸을 선택했습니다. Ctrl+C로 복사하세요."; });
+};
+
+// ---------- 초안 저장(이 브라우저) ----------
+const KEY = "rb-research-draft-v2";
+function saveDraft(){
+  if (state.isExample) return;
+  try { localStorage.setItem(KEY, JSON.stringify({company: $("company").value, asof: $("asof").value, corp: $("corp").value, rid: $("rid").value, sources: state.sources, result: state.result, fin: state.fin || null, savedAt: Date.now()})); } catch {}
+}
+// 이 브라우저에 남는 초안도 24시간이 지나면 지움 (팀 공용 사용 원칙)
+const KEEP_MS = 24 * 3600 * 1000;
+function fresh(key){ try { const d = JSON.parse(localStorage.getItem(key) || "null"); if (d && (!d.savedAt || Date.now() - d.savedAt > KEEP_MS)){ localStorage.removeItem(key); return null; } return d; } catch { return null; } }
+function loadDraft(){ return fresh(KEY); }
+
+function apply(d, isExample){
+  state.isExample = isExample; $("exampleBanner").hidden = !isExample;
+  $("company").value = d.company || ""; $("asof").value = d.asof || ""; $("corp").value = d.corp || ""; $("rid").value = d.rid || "";
+  $("dartQ").value = (d.company || "").replace(/\(가상\)$/, ""); dartBusy(false); linkBusy(false); finBusy(false);
+  state.sources = (d.sources || []).map(s => ({type: s.type || "dart", title: s.title || "", url: s.url || "", text: s.text || ""}));
+  state.result = d.result || null; state.fin = d.fin || null;
+  if (state.fin) $("finYear").value = state.fin.year;
+  renderSources(); renderGuide(); refreshResult(); tab("rv"); showRid();
+}
+function resetResearch(){
+  $("btnClear").onclick();
+  $("dartQ").value = ""; $("dartHits").innerHTML = ""; $("btnDartGet").hidden = true; dartPick = null;
+  for (const id of ["dartStatus", "linkStatus", "finStatus", "genStatus", "sendStatus", "saveStatus"]) if ($(id)) $(id).textContent = "";
+  for (const id of ["dartNotes", "linkNotes"]) $(id).innerHTML = "";
+  $("linkIn").value = ""; $("corp").value = ""; $("company").value = "";
+  try { localStorage.removeItem(KEY); } catch {}
+  saveDraft();
+}
+$("btnResetR").onclick = resetResearch;
+$("btnResetC").onclick = () => {
+  cap.result = null; cap.over = {}; capHitsState = []; capHitsRender(); $("capQ").value = "";
+  for (const id of ["capFindStatus", "capStatus"]) if ($(id)) $(id).textContent = "";
+  capApplyInputs({}); cap.inputs = capInputs(); capRender();
+  try { localStorage.removeItem(CAP_KEY); } catch {}
+};
+$("btnClear").onclick = () => {
+  apply({rid: $("rid").value, sources: [{type:"dart", title:"", url:"", text:""}], result: null}, false);
+  state.isExample = false; $("exampleBanner").hidden = true; lastNotes = []; state.fin = null; $("finYear").value = ""; saveDraft(); $("dartQ").focus();
+};
+
+// ---------- 시작 ----------
+function fromHash(){
+  const m = /^#?([a-f0-9]{64})(?:-\w+)?$/.exec(location.hash || "");  // 예전 링크의 -equity 등 꼬리는 무시
+  return m ? {rid: m[1]} : null;
+}
+(function start(){
+  const h = fromHash(), draft = loadDraft();
+  if (h){
+    const base = draft && draft.rid === h.rid ? draft : {sources: [{type:"dart", title:"", url:"", text:""}], result: null};
+    apply({...base, rid: h.rid}, false);
+  } else if (draft){ apply(draft, false); }
+  else apply({...EXAMPLE, result: EXAMPLE_RESULT}, true);
+})();
+window.addEventListener("hashchange", () => { const h = fromHash(); if (h){ $("rid").value = h.rid; showRid(); refreshResult(); } });
+
+// ======================= 대용기업 자본구조 =======================
+const CAP_KEY = "rb-capital-v1";
+const cap = {inputs: null, result: null, over: {}, open: null, isExample: false};
+const M = v => v == null ? null : v / 1e6;
+const fmt = (v, d = 0) => v == null || !isFinite(v) ? "–" : Number(v).toLocaleString("ko-KR", {maximumFractionDigits: d, minimumFractionDigits: d});
+function capRow(c){
+  const o = cap.over[c.corp_code] || {};
+  const debtM = o.debt != null ? o.debt : Math.round(M(c.interest_bearing_debt.total));
+  const sh = (c.shares && c.shares.common && c.shares.common.outstanding) || null;
+  const mcap = o.price && sh ? o.price * sh / 1e6 : null;
+  const eqM = M(c.totals.equity);
+  return {debtM, sh, price: o.price || null, mcap,
+          bookDE: eqM ? debtM / eqM * 100 : null,
+          mktDE: mcap ? debtM / mcap * 100 : null,
+          dv: mcap ? debtM / (debtM + mcap) * 100 : null};
+}
+function capSave(){ try { localStorage.setItem(CAP_KEY, JSON.stringify({inputs: cap.inputs, result: cap.result, over: cap.over, savedAt: Date.now()})); } catch {} }
+function capLoad(){ return fresh(CAP_KEY); }
+// 고른 대용기업: [{code 고유번호, name 회사명, listed, stock_code}]
+let capRowsState = [];
+let capHitsState = [];
+function capMode(){ return (document.querySelector('input[name="capMode"]:checked') || {}).value || "latest"; }
+function capInputs(){
+  return {rows: capRowsState.map(r => ({code: r.code, name: r.name, listed: r.listed, stock_code: r.stock_code})), mode: capMode(), year: $("capYear").value.trim(),
+          period: $("capPeriod").value, cons: $("capCons").checked, lease: $("capLease").checked};
+}
+function capApplyInputs(i){
+  i = i || {};
+  let rows = i.rows;
+  if (!rows && i.list) rows = i.list.split(/[\n,]+/).map(x => x.trim()).filter(Boolean).map(q => ({name: q}));  // 예전 저장 형식
+  capRowsState = (rows || []).map(r => ({code: r.code || "", name: r.name || r.q || "", listed: r.listed, stock_code: r.stock_code || ""})).filter(r => r.name || r.code);
+  const mode = i.mode || "latest";
+  document.querySelectorAll('input[name="capMode"]').forEach(x => x.checked = x.value === mode);
+  $("capFixed").hidden = mode !== "fixed";
+  $("capYear").value = i.year || String(new Date().getFullYear() - 1);
+  $("capPeriod").value = i.period || "annual"; $("capCons").checked = i.cons !== false; $("capLease").checked = i.lease !== false;
+  capRowsRender();
+}
+function capRowsRender(){
+  const box = $("capPicked");
+  box.innerHTML = capRowsState.length ? capRowsState.map((r, i) => `<div class="row"><span class="no">${i + 1}</span>
+      <span><span class="nm">${esc(r.name)}</span> <span class="meta mono">${esc(r.code || "이름으로 조회")}</span></span>
+      <span class="tag ${r.listed ? "on" : ""}">${r.listed === undefined ? "" : r.listed ? "상장 " + esc(r.stock_code) : "비상장"}</span>
+      <button class="btn quiet" type="button" data-del="${i}" aria-label="${esc(r.name)} 빼기">삭제</button></div>`).join("")
+    : `<div class="none">검색한 대용기업이 이곳에 표시됩니다. 최대 15개 회사를 지원합니다.</div>`;
+  box.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { capRowsState.splice(+b.dataset.del, 1); capRowsRender(); capSaveInputs(); });
+  $("capCount").textContent = `${capRowsState.length}/15곳`;
+}
+function capHitsRender(){
+  $("capHits").innerHTML = capHitsState.map((h, i) => {
+    const has = capRowsState.some(r => r.code === h.corp_code);
+    return `<div class="hit"><span class="nm">${esc(h.corp_name)}</span><span class="tag ${h.listed ? "on" : ""}">${h.listed ? "상장 " + esc(h.stock_code) : "비상장"}</span>
+      <span class="meta mono">${esc(h.corp_code)}</span><button class="btn ghost add" type="button" data-add="${i}" ${has || capRowsState.length >= 15 ? "disabled" : ""}>${has ? "추가됨" : "추가"}</button></div>`;
+  }).join("");
+  $("capHits").querySelectorAll("[data-add]").forEach(b => b.onclick = () => capAdd(capHitsState[+b.dataset.add]));
+}
+function capAdd(h){
+  if (!h || capRowsState.length >= 15 || capRowsState.some(r => r.code === h.corp_code)) return;
+  capRowsState.push({code: h.corp_code, name: h.corp_name, listed: h.listed, stock_code: h.stock_code || ""});
+  capHitsState = []; capHitsRender(); capRowsRender(); capSaveInputs();
+  $("capQ").value = ""; $("capFindStatus").textContent = `${h.corp_name} 추가`; $("capQ").focus();
+}
+async function capFind(){
+  const q = $("capQ").value.trim(), st = $("capFindStatus");
+  if (!q){ st.textContent = "회사명을 넣어 주세요."; return; }
+  if (!mcpNs){ st.textContent = `claude.ai에서 '${DART}' 커넥터를 켜고 열어 주세요.`; return; }
+  st.textContent = "찾는 중…"; $("btnCapFind").disabled = true;
+  try {
+    const res = await mcpNs.callTool(DART, "search_company", {name: q, limit: 8}, {cache: {staleTime: 3600000, gcTime: 3600000}});
+    capHitsState = (res.payload && res.payload.results) || [];
+    st.textContent = capHitsState.length ? "" : "DART에 등록된 회사가 없습니다. 이름을 줄여 보세요.";
+    const bare = x => kname(x).replace(/\(주\)|㈜|주식회사/g, "");
+    const exact = capHitsState.filter(h => bare(h.corp_name) === bare(q));
+    if (capHitsState.length === 1 || exact.length === 1) return capAdd(capHitsState.length === 1 ? capHitsState[0] : exact[0]);
+    capHitsRender();
+  } catch (e){ st.textContent = dartErr(e); }
+  finally { $("btnCapFind").disabled = false; }
+}
+$("btnCapFind").onclick = capFind;
+$("capQ").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); capFind(); } });
+function capSaveInputs(){ cap.inputs = capInputs(); capSave(); }
+// 보고서 시점: 네모 체크 모양이지만 둘 중 하나만 선택
+document.querySelectorAll('input[name="capMode"]').forEach(x => x.onchange = () => {
+  document.querySelectorAll('input[name="capMode"]').forEach(y => { if (y !== x) y.checked = !x.checked; });
+  $("capFixed").hidden = capMode() !== "fixed"; capSaveInputs();
+});
+function capRender(){
+  const t = $("capTable"), r = cap.result;
+  if (!r){ $("capWarn").hidden = true; t.innerHTML = `<tbody><tr><td class="empty" style="white-space:normal">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 여기에 표가 나옵니다.</td></tr></tbody>`; $("capDetail").innerHTML = ""; $("capBasis").textContent = ""; $("btnCapXlsx").disabled = true; return; }
+  $("capWarn").hidden = false;
+  $("capBasis").textContent = `${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"}`;
+  const head = `<thead><tr><th>회사</th><th class="num">적용 이자부부채</th><th class="num">현금</th><th class="num">순차입금(*)</th><th class="num">부채총계</th><th class="num">자본총계</th><th class="num">부채비율</th><th class="num">장부가 D/E</th><th class="num">유통보통주식수</th><th class="num">주가(원)</th><th class="num">시가총액</th><th class="num">시가 D/E</th><th class="num">D/(D+E)</th></tr></thead>`;
+  const rows = r.companies.map((c, i) => {
+    if (c.error) return `<tr class="err"><td>${esc(c.input)}</td><td colspan="13" style="white-space:normal">${esc(c.error)}</td></tr>`;
+    const k = capRow(c), t0 = c.totals;
+    const changed = (cap.over[c.corp_code] || {}).debt != null;
+    return `<tr>
+      <td><button class="co" type="button" data-open="${i}">${esc(c.corp_name || c.input)}</button>${c.interest_bearing_debt.approximate ? `<span class="flag" title="차입금이 금융부채로 묶여 있음">주석 확인</span>` : ""}${c.interest_bearing_debt.review_items.length ? `<span class="flag">검토 ${c.interest_bearing_debt.review_items.length}</span>` : ""}</td>
+      <td class="num"><input type="text" inputmode="decimal" aria-label="${esc(c.corp_name)} 적용 이자부부채" data-debt="${c.corp_code}" value="${fmt(k.debtM)}" title="${changed ? "직접 고친 값 · 공시 합산 " + fmt(M(c.interest_bearing_debt.total)) : "공시 합산값"}" style="${changed ? "border-color:var(--warn)" : ""}"></td>
+      <td class="num">${fmt(M(t0.cash))}</td><td class="num">${fmt(k.debtM - (M(t0.cash) || 0))}</td>
+      <td class="num">${fmt(M(t0.liabilities))}</td><td class="num">${fmt(M(t0.equity))}</td>
+      <td class="num">${fmt(c.ratios.debt_ratio_pct, 1)}%</td><td class="num">${fmt(k.bookDE, 1)}%</td>
+      <td class="num">${fmt(k.sh)}</td>
+      <td class="num"><input type="text" inputmode="numeric" aria-label="${esc(c.corp_name)} 주가" data-price="${c.corp_code}" value="${k.price ? fmt(k.price) : ""}" placeholder="입력"></td>
+      <td class="num calc">${fmt(k.mcap)}</td><td class="num calc">${k.mktDE == null ? "–" : fmt(k.mktDE, 1) + "%"}</td><td class="num calc">${k.dv == null ? "–" : fmt(k.dv, 1) + "%"}</td></tr>`;
+  }).join("");
+  const ok = r.companies.filter(c => !c.error).map(capRow).filter(k => k.mktDE != null);
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const med = a => { if (!a.length) return null; const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  const foot = ok.length ? `<tfoot><tr><td colspan="12" style="text-align:right;color:var(--muted)">주가 넣은 ${ok.length}곳 평균 / 중앙값</td><td class="num calc">${fmt(avg(ok.map(k => k.mktDE)), 1)}% / ${fmt(med(ok.map(k => k.mktDE)), 1)}%</td><td class="num calc">${fmt(avg(ok.map(k => k.dv)), 1)}% / ${fmt(med(ok.map(k => k.dv)), 1)}%</td></tr></tfoot>` : "";
+  t.innerHTML = head + `<tbody>${rows}</tbody>` + foot;
+  t.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { cap.open = +b.dataset.open === cap.open ? null : +b.dataset.open; capDetail(); });
+  const num = s => { const v = String(s).replace(/[^0-9.\-]/g, ""); return v === "" ? null : Number(v); };
+  t.querySelectorAll("[data-debt]").forEach(inp => inp.onchange = () => {
+    const c = r.companies.find(x => x.corp_code === inp.dataset.debt), v = num(inp.value), base = Math.round(M(c.interest_bearing_debt.total));
+    cap.over[c.corp_code] = {...(cap.over[c.corp_code] || {}), debt: v == null || v === base ? undefined : v};
+    capMark(); capRender(); capSave();
+  });
+  t.querySelectorAll("[data-price]").forEach(inp => inp.onchange = () => {
+    cap.over[inp.dataset.price] = {...(cap.over[inp.dataset.price] || {}), price: num(inp.value) || undefined};
+    capMark(); capRender(); capSave();
+  });
+  $("btnCapXlsx").disabled = !r.companies.some(c => !c.error);
+  capDetail();
+}
+function capDetail(){
+  const box = $("capDetail"), r = cap.result;
+  const c = r && cap.open != null ? r.companies[cap.open] : null;
+  if (!c || c.error){ box.innerHTML = ""; return; }
+  const d = c.interest_bearing_debt;
+  box.innerHTML = `<h3>${esc(c.corp_name)} · ${esc(c.report)} (${esc(c.basis)}) <a href="${esc(c.url)}" target="_blank" rel="noopener" style="font-size:12px;font-weight:400">DART 원문</a></h3>
+    <div class="tbl-wrap"><table class="t"><thead><tr><th>합산한 계정</th><th>분류</th><th class="num">금액(백만원)</th></tr></thead><tbody>
+    ${d.items.map(i => `<tr><td>${esc(i.account)}</td><td>${esc(i.type)}</td><td class="num">${fmt(M(i.amount))}</td></tr>`).join("") || `<tr><td colspan="3">재무상태표에서 차입금 계정을 찾지 못했습니다. 주석으로 확인하세요.</td></tr>`}
+    <tr><td><b>합계</b></td><td></td><td class="num"><b>${fmt(M(d.total))}</b></td></tr></tbody></table></div>
+    ${d.review_items.length ? `<div><b>합산하지 않은 검토 계정</b><ul class="issue-list">${d.review_items.map(i => `<li>${esc(i.account)} ${fmt(M(i.amount))}백만원</li>`).join("")}</ul></div>` : ""}
+    ${!cap.result.lease_included && d.lease_total ? `<div>리스부채 ${fmt(M(d.lease_total))}백만원은 제외했습니다.</div>` : ""}
+    ${(c.notes || []).length ? `<ul class="issue-list">${c.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    <div class="foot">금융원가 ${fmt(M(c.totals.finance_costs))}백만원 · 유효세율 ${c.ratios.effective_tax_rate_pct == null ? "– (세전손실 또는 자료 없음)" : fmt(c.ratios.effective_tax_rate_pct, 1) + "%"} · 자기주식 ${fmt((c.shares.common || {}).treasury)}주</div>`;
+}
+function capMark(){}
+$("btnCap").onclick = async () => {
+  const st = $("capStatus"), i = capInputs();
+  const list = [...new Set(capRowsState.map(r => r.code || r.name).filter(Boolean))];
+  if (!list.length){ st.textContent = "회사를 1곳 이상 추가해 주세요."; return; }
+  if (list.length > 15){ st.textContent = "한 번에 15곳까지입니다."; return; }
+  if (i.mode === "fixed" && !/^\d{4}$/.test(i.year)){ st.textContent = "사업연도는 4자리 연도입니다 (예: 2025)."; return; }
+  if (!mcpNs){ st.textContent = `claude.ai에서 '${DART}' 커넥터를 켜고 열어 주세요.`; return; }
+  capMark(); cap.inputs = i;
+  $("btnCap").disabled = true; st.textContent = `${list.length}곳 조회 중… (최초로 조회하는 기업의 경우 수 초가 걸릴 수 있습니다)`;
+  try {
+    const args = {companies: list, consolidated: i.cons, include_lease: i.lease, ...(i.mode === "fixed" ? {year: +i.year, period: i.period} : {period: "latest"})};
+    const r = await mcpNs.callTool(DART, "capital_structure", args,
+                                   {cache: {staleTime: 21600000, gcTime: 21600000}});
+    const p = r.payload || {};
+    if (!Array.isArray(p.companies)) throw {code: "tool_error", message: "응답 형식이 예상과 다릅니다."};
+    cap.result = p; cap.open = null;
+    const bad = p.companies.filter(c => c.error).length, flag = p.companies.filter(c => !c.error && c.interest_bearing_debt.approximate).length;
+    st.textContent = `${p.companies.length - bad}곳 완료` + (bad ? ` · ${bad}곳 실패(표에 사유)` : "") + (flag ? ` · ${flag}곳 주석 확인 필요` : "");
+    capRender(); capSave();
+  } catch (e){ st.textContent = dartErr(e); }
+  finally { $("btnCap").disabled = false; }
+};
+for (const id of ["capYear", "capPeriod", "capCons", "capLease"]) $(id).addEventListener("change", capSaveInputs);
+
+// 엑셀 (SheetJS는 내보낼 때만 불러옴)
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    sc.onload = () => res(window.XLSX); sc.onerror = () => rej(new Error("load")); document.head.appendChild(sc); });
+}
+$("btnCapXlsx").onclick = async () => {
+  const st = $("capSaveStatus"), r = cap.result;
+  if (!downloadsNs){ st.textContent = "이 화면에서는 파일 저장을 쓸 수 없습니다."; return; }
+  st.textContent = "엑셀 만드는 중…";
+  let X; try { X = await loadXLSX(); } catch { st.textContent = "엑셀 도구를 불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요."; return; }
+  const cs = r.companies.filter(c => !c.error);
+  const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "부채비율(%)", "장부가 D/E(%)", "유통보통주식수", "주가(원)", "시가총액", "시가 D/E(%)", "D/(D+E)(%)", "주석 확인"];
+  const aoa = [[`대용기업 자본구조 · ${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"} · 단위 백만원(주식수·주가 제외)`], H];
+  cs.forEach(c => { const k = capRow(c);
+    aoa.push([c.corp_name, c.corp_code, c.basis, c.report, k.debtM, Math.round(M(c.interest_bearing_debt.total)), Math.round(M(c.totals.cash) || 0), null,
+              Math.round(M(c.totals.liabilities)), Math.round(M(c.totals.equity)), null, null, k.sh, k.price, null, null, null, c.interest_bearing_debt.approximate ? "Y" : ""]); });
+  const ws = X.utils.aoa_to_sheet(aoa);
+  cs.forEach((c, i) => { const R = i + 3;  // 엑셀 행 번호
+    ws[`H${R}`] = {t: "n", f: `E${R}-G${R}`};
+    ws[`K${R}`] = {t: "n", f: `IFERROR(I${R}/J${R}*100,"")`};
+    ws[`L${R}`] = {t: "n", f: `IFERROR(E${R}/J${R}*100,"")`};
+    ws[`O${R}`] = {t: "n", f: `IF(N${R}="","",N${R}*M${R}/1000000)`};
+    ws[`P${R}`] = {t: "n", f: `IF(O${R}="","",E${R}/O${R}*100)`};
+    ws[`Q${R}`] = {t: "n", f: `IF(O${R}="","",E${R}/(E${R}+O${R})*100)`};
+  });
+  const last = cs.length + 2, sumR = last + 1;
+  X.utils.sheet_add_aoa(ws, [["평균"]], {origin: `A${sumR}`}); X.utils.sheet_add_aoa(ws, [["중앙값"]], {origin: `A${sumR + 1}`});
+  for (const col of ["P", "Q"]){ ws[`${col}${sumR}`] = {t: "n", f: `IFERROR(AVERAGE(${col}3:${col}${last}),"")`}; ws[`${col}${sumR + 1}`] = {t: "n", f: `IFERROR(MEDIAN(${col}3:${col}${last}),"")`}; }
+  X.utils.sheet_add_aoa(ws, [["(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산 (단기금융상품 등 다른 금융자산은 차감하지 않음)"]], {origin: `A${sumR + 3}`});
+  ws["!ref"] = `A1:R${sumR + 3}`;
+  ws["!cols"] = [{wch: 22}, {wch: 10}, {wch: 6}, {wch: 20}, ...Array(9).fill({wch: 13}), {wch: 10}, {wch: 13}, {wch: 11}, {wch: 11}, {wch: 8}];
+  for (let R = 3; R <= sumR + 1; R++) for (const col of "EFGHIJMNO") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
+  for (let R = 3; R <= sumR + 1; R++) for (const col of "KLPQ") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "0.0"; }
+  const det = [["회사", "구분", "계정", "분류", "금액(백만원)"]];
+  cs.forEach(c => { const d = c.interest_bearing_debt;
+    d.items.forEach(i => det.push([c.corp_name, "합산", i.account, i.type, Math.round(M(i.amount))]));
+    d.review_items.forEach(i => det.push([c.corp_name, "검토(미합산)", i.account, "", Math.round(M(i.amount))]));
+    if (!r.lease_included && d.lease_total) det.push([c.corp_name, "제외(리스)", "리스부채", "", Math.round(M(d.lease_total))]); });
+  const src = [["회사", "보고서", "기준", "접수번호", "DART 링크", "비고"]];
+  r.companies.forEach(c => src.push(c.error ? [c.input, "", "", "", "", c.error] : [c.corp_name, c.report, c.basis, c.rcept_no, c.url, (c.notes || []).join(" / ")]));
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, "자본구조");
+  const wd = X.utils.aoa_to_sheet(det); wd["!cols"] = [{wch: 22}, {wch: 12}, {wch: 22}, {wch: 16}, {wch: 14}]; X.utils.book_append_sheet(wb, wd, "이자부부채 계정근거");
+  const wsrc = X.utils.aoa_to_sheet(src); wsrc["!cols"] = [{wch: 22}, {wch: 20}, {wch: 6}, {wch: 16}, {wch: 50}, {wch: 80}]; X.utils.book_append_sheet(wb, wsrc, "출처");
+  const buf = X.write(wb, {type: "array", bookType: "xlsx"});
+  try { await downloadsNs.save({filename: `대용기업_자본구조_${r.year || today()}.xlsx`, data: buf}); st.textContent = "저장했습니다."; }
+  catch (e){ st.textContent = e && e.code === "declined" ? "저장을 취소했습니다." : "저장하지 못했습니다."; }
+};
+
+// 탭 전환
+function view(which){
+  $("navResearch").setAttribute("aria-selected", String(which === "research")); $("navCap").setAttribute("aria-selected", String(which === "cap"));
+  $("viewResearch").hidden = which !== "research"; $("viewCap").hidden = which !== "cap";
+  try { localStorage.setItem("rb-view", which); } catch {}
+}
+$("navResearch").onclick = () => view("research"); $("navCap").onclick = () => view("cap");
+(function capStart(){
+  const saved = capLoad();
+  if (saved){ cap.inputs = saved.inputs || {}; cap.result = saved.result || null; cap.over = saved.over || {}; }
+  else { cap.inputs = {}; cap.result = null; cap.over = {}; }
+  capApplyInputs(cap.inputs); capRender();
+  let v = "research"; try { v = localStorage.getItem("rb-view") || "research"; } catch {}
+  view(/^#cap$/i.test(location.hash) ? "cap" : location.hash && /^#?[a-f0-9]{64}/.test(location.hash) ? "research" : v);
+})();
+
+(async () => {
+  if (!window.claude || !window.claude.use) { $("genStatus").textContent = "claude.ai에서 열면 Claude로 작성할 수 있습니다."; $("dartStatus").textContent = `claude.ai에서 열고 '${DART}' 커넥터를 켜면 회사명만으로 자료를 가져옵니다.`; $("linkStatus").textContent = `claude.ai에서 '${DART}' 커넥터를 켜면 링크 본문을 가져옵니다.`; return; }
+  const [s, d, m] = await Promise.all([window.claude.use("sample").catch(() => null), window.claude.use("downloads").catch(() => null), window.claude.use("mcp").catch(() => null)]);
+  sampleFn = s; downloadsNs = d; mcpNs = m;
+  dartBusy(false); linkBusy(false); finBusy(false);
+  if (!s){ $("btnGen").disabled = true; $("genStatus").textContent = "이 화면에서는 Claude 호출을 쓸 수 없습니다."; }
+  diagnose(m, s);
+})();
+
+// ---------- 연결 진단: 왜 커넥터를 못 쓰는지 화면에 알려 줌 ----------
+async function diagnose(m, s){
+  const box = $("diag"), lines = [];
+  let perms = null; try { perms = await window.claude.use("permissions"); } catch {}
+  const stOf = async n => { try { return perms ? await perms.state(n) : "?"; } catch { return "?"; } };
+  const [pm, ps] = await Promise.all([stOf("mcp"), stOf("sample")]);
+  if (!m){
+    if (pm === "denied") lines.push(`커넥터 사용을 거절한 상태입니다. 아래 <b>권한 설정 열기</b>에서 '${DART}'를 허용해 주세요.`);
+    else lines.push(`이 계정·화면에서는 이 아티팩트의 커넥터 기능이 열리지 않습니다(권한 상태: ${pm}). 공유받은 계정이라면 <b>초대받은 이메일로 로그인</b>했는지, 아티팩트를 <b>claude.ai 안에서</b> 열었는지 확인해 주세요. 조직 밖 계정에는 이 기능이 막혀 있을 수 있습니다.`);
+  } else {
+    try {
+      const r = await m.listTools(DART);
+      const srv = (r && (r.servers || r)) || [];
+      const list = Array.isArray(srv) ? srv : Object.values(srv);
+      const found = list.find(x => (x.server || x.name || x.displayName) === DART) || list[0];
+      const tools = found ? (found.tools || []) : [];
+      if (!found) lines.push(`이 계정에 '${DART}' 커넥터가 보이지 않습니다. 커넥터 이름이 정확히 <b>${DART}</b>(띄어쓰기 포함)인지, 연결(Connect)했는지 확인해 주세요.`);
+      else if (!tools.length && found.authStatus !== "unknown") lines.push(`'${DART}' 커넥터가 연결되지 않았거나 도구가 꺼져 있습니다. 설정 → 커넥터에서 연결 상태와 도구 허용을 확인해 주세요.`);
+    } catch (e){ lines.push(`커넥터 목록을 읽지 못했습니다: ${esc(dartErr(e))}`); }
+  }
+  if (!s && ps !== "granted") lines.push(`Claude 작성 기능 권한 상태: ${ps}.`);
+  if (!lines.length){ box.hidden = true; return; }
+  box.innerHTML = `<b>연결 확인</b><ul class="issue-list">${lines.map(x => `<li>${x}</li>`).join("")}</ul>` +
+    (perms ? `<button class="btn quiet" type="button" id="btnPerms">권한 설정 열기</button>` : "");
+  box.hidden = false;
+  const bp = $("btnPerms"); if (bp) bp.onclick = async () => { try { await perms.manage(); location.reload(); } catch { bp.textContent = "아티팩트 메뉴의 '권한'에서 바꿔 주세요"; } };
+}
+(() => {
+})();
+})();
+</script>

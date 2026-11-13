@@ -401,6 +401,23 @@ async def send_research(report_id: str, research: dict) -> dict:
     return await _report_app("POST", report_id, research)
 
 
+# ---------------------------------------------------------------- 화면 코드 배포 (팀원 아티팩트 자동 업데이트)
+UI_DIR = Path(__file__).resolve().parent / "ui"
+
+
+@mcp.tool(annotations=READ)
+async def ui_bundle(name: str = "research") -> dict:
+    """팀원 계정의 '껍데기' 아티팩트가 열릴 때 최신 화면 코드(HTML)를 받아 갑니다. name: research(회사개요 리서치·대용기업 자본구조)."""
+    import hashlib
+    if not re.fullmatch(r"[a-z0-9_-]{1,40}", name or ""):
+        raise ToolError("화면 이름이 올바르지 않습니다.")
+    path = UI_DIR / f"{name}.html"
+    if not path.is_file():
+        raise ToolError(f"'{name}' 화면이 서버에 없습니다.")
+    html = path.read_text(encoding="utf-8")
+    return {"name": name, "version": hashlib.sha256(html.encode()).hexdigest()[:12], "bytes": len(html.encode()), "html": html}
+
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(_: Request) -> JSONResponse:
     # Railway 헬스체크가 배포 직후 부르므로, 여기서 DART 회사 목록을 미리 받기 시작합니다.

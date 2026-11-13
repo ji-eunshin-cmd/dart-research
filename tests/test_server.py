@@ -187,7 +187,7 @@ def test_wrong_secret_is_404(http):
 def test_tools_listed_read_only(http):
     rpc(http, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
     tools = rpc(http, "tools/list", {}, 2)["result"]["tools"]
-    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure", "fetch_url", "report_status", "send_research"}
+    assert {t["name"] for t in tools} == {"search_company", "research_bundle", "financial_statements", "capital_structure", "fetch_url", "report_status", "send_research", "ui_bundle"}
     assert all(t["annotations"]["readOnlyHint"] for t in tools if t["name"] != "send_research")
 
 
@@ -351,3 +351,9 @@ def test_send_research_relays(monkeypatch):
             _a.run(server.send_research("short", {}))
     finally:
         c.http = old
+
+
+def test_ui_bundle(http):
+    r = call(http, "ui_bundle", {})["structuredContent"]
+    assert r["name"] == "research" and len(r["version"]) == 12 and "<script>" in r["html"]
+    assert call(http, "ui_bundle", {"name": "../x"})["isError"]
