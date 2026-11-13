@@ -1332,7 +1332,7 @@ function capRender(){
   metRender();
 }
 // 3 주요 재무 지표: LTM 표와 직전 연간 표
-const MET_COLS = [["revenue", "매출액"], ["operating_income", "영업이익"], ["net_income", "당기순이익"], ["da", "감가상각비"], ["ebitda", "EBITDA"], ["income_tax", "법인세비용"], ["ni_parent", "지배주주귀속순이익"]];
+const MET_COLS = [["revenue", "매출액"], ["operating_income", "영업이익"], ["net_income", "당기순이익"], ["da", "감가상각비"], ["income_tax", "법인세비용"], ["ebitda", "EBITDA"], ["ni_parent", "지배주주귀속순이익"]];
 function metVals(m){
   if (!m) return null;
   const v = k => m[k] == null ? null : M(m[k]);
@@ -1375,11 +1375,12 @@ function metDetail(){
   const keys = [["revenue", "매출액"], ["operating_income", "영업이익"], ["net_income", "당기순이익"], ["da", "감가상각비"], ["income_tax", "법인세비용"], ["ni_parent", "지배주주귀속순이익"]];
   const head = parts ? `<th class="num">${esc(a.label || "직전 연간")}</th><th class="num">+ ${esc(l.cur_label || "당기 누적")}</th><th class="num">− ${esc(l.prior_label || "전기 동기 누적")}</th><th class="num">= LTM</th>`
                      : `<th class="num">${esc(a.label || "연간")} (= LTM)</th>`;
-  const body = keys.map(([k, h]) => `<tr><td>${h}${k === "ni_parent" && l.ni_parent_is_total ? `<span class="flag">당기순이익</span>` : ""}</td><td style="white-space:normal;font-size:12px;color:var(--muted)">${esc(acct(k, parts ? l[k] : a[k]))}</td>${
-    parts ? `<td class="num">${f(parts[k].annual)}</td><td class="num">${f(parts[k].cur)}</td><td class="num">${f(parts[k].prior)}</td><td class="num calc">${f(l[k])}</td>` : `<td class="num">${f(a[k])}</td>`}</tr>`).join("")
-    + `<tr><td><b>EBITDA</b></td><td style="font-size:12px;color:var(--muted)">영업이익 + 감가상각비</td>${parts
+  const rowOf = ([k, h]) => `<tr><td>${h}${k === "ni_parent" && l.ni_parent_is_total ? `<span class="flag">당기순이익</span>` : ""}</td><td style="white-space:normal;font-size:12px;color:var(--muted)">${esc(acct(k, parts ? l[k] : a[k]))}</td>${
+    parts ? `<td class="num">${f(parts[k].annual)}</td><td class="num">${f(parts[k].cur)}</td><td class="num">${f(parts[k].prior)}</td><td class="num calc">${f(l[k])}</td>` : `<td class="num">${f(a[k])}</td>`}</tr>`;
+  const ebitRow = `<tr><td><b>EBITDA</b></td><td style="font-size:12px;color:var(--muted)">영업이익 + 감가상각비</td>${parts
       ? `<td class="num">${f(a.operating_income != null && a.da != null ? a.operating_income + a.da : null)}</td><td></td><td></td><td class="num calc">${f(l.operating_income != null && l.da != null ? l.operating_income + l.da : null)}</td>`
       : `<td class="num">${f(a.operating_income != null && a.da != null ? a.operating_income + a.da : null)}</td>`}</tr>`;
+  const body = keys.map(kh => rowOf(kh) + (kh[0] === "income_tax" ? ebitRow : "")).join("");
   const daList = (title, items) => items && items.length ? `<div><b>${esc(title)}</b><ul class="issue-list">${items.map(i => `<li>${esc(i.account)}${i.amount != null ? " " + f(i.amount) + "백만원" : ""}</li>`).join("")}</ul></div>` : "";
   const dp = l.da_parts;
   const links = [a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">직전 사업보고서</a>` : "", c.url && parts ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">최근 보고서(${esc(c.report)})</a>` : (c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">DART 원문</a>` : "")].filter(Boolean).join(" · ");
@@ -1488,16 +1489,16 @@ $("btnCapXlsx").onclick = async () => {
   const mws = X.utils.aoa_to_sheet(met);
   let row = 3; const mcells = [];
   for (const [kind, title] of [["ltm", "LTM"], ["annual", "직전 연간"]]){
-    X.utils.sheet_add_aoa(mws, [[title], ["회사", "매출액", "영업이익", "당기순이익", "감가상각비", "EBITDA", "법인세비용", "지배주주귀속순이익", "기준 보고서", "비고"]], {origin: `A${row}`});
+    X.utils.sheet_add_aoa(mws, [[title], ["회사", "매출액", "영업이익", "당기순이익", "감가상각비", "법인세비용", "EBITDA", "지배주주귀속순이익", "기준 보고서", "비고"]], {origin: `A${row}`});
     row += 2;
     cs.forEach(c => { const v = metVals(c.metrics && c.metrics[kind]);
       const note = !v ? (((c.metrics || {}).notes || [])[0] || "") : [v.da == null ? "감가상각비 주석 확인" : "", v.niTotal ? "지배주주 구분 없어 당기순이익" : ""].filter(Boolean).join(" / ");
       const R0 = v => v == null ? null : Math.round(v);
-      X.utils.sheet_add_aoa(mws, [[c.corp_name, v ? R0(v.revenue) : null, v ? R0(v.operating_income) : null, v ? R0(v.net_income) : null, v ? R0(v.da) : null, null,
-                                   v ? R0(v.income_tax) : null, v ? R0(v.ni_parent) : null, v ? v.label : "", note]], {origin: `A${row}`});
+      X.utils.sheet_add_aoa(mws, [[c.corp_name, v ? R0(v.revenue) : null, v ? R0(v.operating_income) : null, v ? R0(v.net_income) : null, v ? R0(v.da) : null, v ? R0(v.income_tax) : null, null,
+                                   v ? R0(v.ni_parent) : null, v ? v.label : "", note]], {origin: `A${row}`});
       const e = v && v.operating_income != null && v.da != null ? Math.round(v.operating_income) + Math.round(v.da) : null;
       const ef = `IF(OR(C${row}="",E${row}=""),"",C${row}+E${row})`;  // EBITDA = 영업이익 + 감가상각비
-      mws[`F${row}`] = e == null ? {t: "s", f: ef, v: ""} : {t: "n", f: ef, v: e};
+      mws[`G${row}`] = e == null ? {t: "s", f: ef, v: ""} : {t: "n", f: ef, v: e};
       mcells.push(row); row++; });
     row++;
   }
