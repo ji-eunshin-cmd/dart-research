@@ -438,7 +438,7 @@ $("btnDartFind").onclick = async () => {
   if (!q){ st.textContent = "회사명이나 종목코드를 넣어 주세요."; return; }
   dartBusy(true); st.textContent = "찾는 중…"; $("dartHits").innerHTML = ""; $("btnDartGet").hidden = true; dartPick = null; $("dartNotes").innerHTML = "";
   try {
-    const r = await mcpNs.callTool(DART, "search_company", {name: q, limit: 8}, {cache: {staleTime: 3600000, gcTime: 3600000}});
+    const r = await mcpNs.callTool(DART, "search_company", {name: q, limit: 8}, {cache: false});
     const hits = (r.payload && r.payload.results) || [];
     if (!hits.length){ st.textContent = "DART에 등록된 회사가 없습니다. 이름을 줄이거나 종목코드(* ? 와일드카드 가능)로 찾아보세요. 비외감 회사라면 자료를 직접 붙여넣어 주세요."; return; }
     $("dartHits").innerHTML = hits.map((h, i) => `<label class="hit"><input type="radio" name="dartHit" value="${i}" ${i === 0 ? "checked" : ""}>
@@ -1273,7 +1273,7 @@ async function capFind(){
   if (!mcpNs){ st.textContent = `claude.ai에서 '${DART}' 커넥터를 켜고 열어 주세요.`; return; }
   st.textContent = "찾는 중…"; $("btnCapFind").disabled = true;
   try {
-    const res = await mcpNs.callTool(DART, "search_company", {name: q, limit: 8}, {cache: {staleTime: 3600000, gcTime: 3600000}});
+    const res = await mcpNs.callTool(DART, "search_company", {name: q, limit: 8}, {cache: false});
     capHitsState = (res.payload && res.payload.results) || [];
     st.textContent = capHitsState.length ? "" : "DART에 등록된 회사가 없습니다. 이름을 줄이거나 종목코드(* ? 와일드카드 가능)로 찾아보세요.";
     const bare = x => kname(x).replace(/\(주\)|㈜|주식회사/g, "");
