@@ -78,7 +78,9 @@ def _num(s) -> int | None:
 
 @mcp.tool(annotations=READ)
 async def search_company(name: str, limit: int = 10) -> dict:
-    """회사명으로 DART 고유번호(corp_code)를 찾습니다. (주)·주식회사 표기와 공백은 무시하고, 정확히 일치 → 앞부분 일치 → 포함 순으로 최대 limit개를 돌려줍니다. listed=true는 상장사입니다."""
+    """회사명 또는 종목코드로 DART 고유번호(corp_code)를 찾습니다. 회사명은 (주)·주식회사 표기와 공백을 무시하고 정확히 일치 → 앞부분 일치 → 포함 순.
+    종목코드는 숫자만 넣으면 앞부분 일치(005930, 0059), 와일드카드 *(여러 글자)·?(한 글자)도 됩니다(0059*, *930, 00?930). 8자리 숫자는 고유번호로도 찾습니다.
+    최대 limit개를 돌려줍니다. listed=true는 상장사입니다."""
     try:
         found = await client().search(name, max(1, min(int(limit), 20)))
     except DartError as e:

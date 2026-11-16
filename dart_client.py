@@ -200,6 +200,9 @@ class DartClient:
         return self._corps or []
 
     async def search(self, name: str, limit: int = 10) -> list[Corp]:
+        found = await self._search_code(name, limit)
+        if found is not None and found:
+            return found
         q = norm_name(name)
         if not q:
             return []
@@ -214,6 +217,26 @@ class DartClient:
                 contains.append(c)
         key = lambda c: (not c.listed, len(c.corp_name))  # 상장사·짧은 이름 먼저
         return (sorted(exact, key=key) + sorted(starts, key=key) + sorted(contains, key=key))[:limit]
+
+    async def _search_code(self, query: str, limit: int) -> list[Corp] | None:
+        """종목코드·고유번호로 찾기. 숫자만(앞부분 일치) 또는 와일드카드(* 여러 글자, ? 한 글자)를 쓰면 코드로 봅니다.
+        예: 005930 → 삼성전자, 0059* → 0059로 시작하는 종목, *930 → 930으로 끝나는 종목, 00?930. 코드 검색이 아니면 None."""
+        q = re.sub(r"\s+", "", query or "").upper()
+        wild = "*" in q or "?" in q
+        if not q or not re.fullmatch(r"[0-9A-Z*?]+", q) or not re.search(r"\d", q) or not (wild or q.isdigit()):
+            return None
+        corps = await self.corps()
+        if q.isdigit() and len(q) == 8:  # DART 고유번호
+            hit = [c for c in corps if c.corp_code == q]
+            if hit:
+                return hit
+        if wild:
+            rx = re.compile("^" + re.escape(q).replace(r"\*", ".*").replace(r"\?", ".") + "$")
+            hits = [c for c in corps if c.stock_code and rx.match(c.stock_code.upper())]
+        else:
+            hits = [c for c in corps if c.stock_code and c.stock_code.startswith(q)]
+        hits.sort(key=lambda c: (c.stock_code != q, c.stock_code))
+        return hits[:limit]
 
     # ------------------------------------------------------------ 개별 API
     async def company(self, corp_code: str) -> dict:

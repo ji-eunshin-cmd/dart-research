@@ -62,3 +62,25 @@ def test_separate_statements_fall_back_to_net_income_and_missing_da():
     assert m["da"] is None and m["da_items"] == []
     lt = ltm(m, m, {**m, "revenue": None})
     assert lt["revenue"] is None and lt["da"] is None
+
+
+def test_search_by_stock_code_and_wildcard():
+    import asyncio
+    from dart_client import Corp, DartClient
+    c = DartClient.__new__(DartClient)
+    corps = [Corp("00126380", "삼성전자", "005930"), Corp("00164779", "에스케이하이닉스", "000660"),
+             Corp("00401731", "LG전자", "066570"), Corp("00999999", "3S", "060310"), Corp("00888888", "비상장", "")]
+
+    async def fake():
+        return corps
+    c.corps = fake
+    run = lambda q: [x.corp_name for x in asyncio.run(c.search(q, 10))]
+    assert run("005930") == ["삼성전자"]
+    assert run("0059*") == ["삼성전자"]
+    assert run("*930") == ["삼성전자"]
+    assert run("0?0660") == ["에스케이하이닉스"]
+    assert run("06*") == ["3S", "LG전자"]
+    assert run("00") == ["에스케이하이닉스", "삼성전자"]   # 숫자만 → 앞부분 일치
+    assert run("00126380") == ["삼성전자"]                 # 8자리 고유번호
+    assert run("3S") == ["3S"]                              # 숫자가 섞인 회사명은 이름 검색
+    assert run("삼성") == ["삼성전자"]
