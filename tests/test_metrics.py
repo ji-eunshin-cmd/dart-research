@@ -84,3 +84,16 @@ def test_search_by_stock_code_and_wildcard():
     assert run("00126380") == ["삼성전자"]                 # 8자리 고유번호
     assert run("3S") == ["3S"]                              # 숫자가 섞인 회사명은 이름 검색
     assert run("삼성") == ["삼성전자"]
+
+
+def test_lease_hidden_in_other_financial_liabilities_is_flagged():
+    from finance import classify_debt
+    rows = [{"sj_div": "BS", "account_id": "ifrs-full_ShorttermBorrowings", "account_nm": "단기차입금", "thstrm_amount": "16,900"},
+            {"sj_div": "BS", "account_id": "ifrs-full_OtherCurrentFinancialLiabilities", "account_nm": "기타금융부채", "thstrm_amount": "59,001"},
+            {"sj_div": "BS", "account_id": "ifrs-full_OtherNoncurrentFinancialLiabilities", "account_nm": "기타금융부채", "thstrm_amount": "12,705"}]
+    d = classify_debt(rows, True)
+    assert d["total"] == 16900 and d["lease_maybe_in_other"] is True
+    assert [i["account"] for i in d["review_items"]] == ["기타금융부채 (유동)", "기타금융부채 (비유동)"]
+    rows.append({"sj_div": "BS", "account_id": "ifrs-full_LeaseLiabilities", "account_nm": "리스부채", "thstrm_amount": "3,000"})
+    d2 = classify_debt(rows, True)
+    assert d2["lease_maybe_in_other"] is False and d2["total"] == 19900

@@ -1302,7 +1302,7 @@ function capRender(){
     const k = capRow(c), t0 = c.totals;
     const changed = (cap.over[c.corp_code] || {}).debt != null;
     return `<tr>
-      <td><button class="co" type="button" data-open="${i}">${esc(c.corp_name || c.input)}</button>${c.interest_bearing_debt.approximate ? `<span class="flag" title="차입금이 금융부채로 묶여 있음">주석 확인</span>` : ""}${c.interest_bearing_debt.review_items.length ? `<span class="flag">검토 ${c.interest_bearing_debt.review_items.length}</span>` : ""}</td>
+      <td><button class="co" type="button" data-open="${i}">${esc(c.corp_name || c.input)}</button>${c.interest_bearing_debt.approximate ? `<span class="flag" title="차입금이 금융부채로 묶여 있음">주석 확인</span>` : ""}${c.interest_bearing_debt.lease_maybe_in_other ? `<span class="flag" title="재무상태표에 리스부채 계정이 없음. 기타금융부채에 묶여 있을 수 있음">리스 확인</span>` : ""}${c.interest_bearing_debt.review_items.length ? `<span class="flag">검토 ${c.interest_bearing_debt.review_items.length}</span>` : ""}</td>
       <td class="num"><input type="text" inputmode="decimal" aria-label="${esc(c.corp_name)} 적용 이자부부채" data-debt="${c.corp_code}" value="${fmt(k.debtM)}" title="${changed ? "직접 고친 값 · 공시 합산 " + fmt(M(c.interest_bearing_debt.total)) : "공시 합산값"}" style="${changed ? "border-color:var(--warn)" : ""}"></td>
       <td class="num">${fmt(M(t0.cash))}</td><td class="num">${fmt(k.debtM - (M(t0.cash) || 0))}</td>
       <td class="num">${fmt(M(t0.liabilities))}</td><td class="num">${fmt(M(t0.equity))}</td><td class="num">${t0.nci == null ? "–" : fmt(M(t0.nci))}</td>
@@ -1400,7 +1400,7 @@ function capDetail(){
     <div class="tbl-wrap"><table class="t"><thead><tr><th>합산한 계정</th><th>분류</th><th class="num">금액(백만원)</th></tr></thead><tbody>
     ${d.items.map(i => `<tr><td>${esc(i.account)}</td><td>${esc(i.type)}</td><td class="num">${fmt(M(i.amount))}</td></tr>`).join("") || `<tr><td colspan="3">재무상태표에서 차입금 계정을 찾지 못했습니다. 주석으로 확인하세요.</td></tr>`}
     <tr><td><b>합계</b></td><td></td><td class="num"><b>${fmt(M(d.total))}</b></td></tr></tbody></table></div>
-    ${d.review_items.length ? `<div><b>합산하지 않은 검토 계정</b><ul class="issue-list">${d.review_items.map(i => `<li>${esc(i.account)} ${fmt(M(i.amount))}백만원</li>`).join("")}</ul></div>` : ""}
+    ${d.review_items.length ? `<div><b>합산하지 않은 검토 계정</b><ul class="issue-list">${d.review_items.map(i => `<li>${esc(i.account)} ${fmt(M(i.amount))}백만원${i.reason ? ` — ${esc(i.reason)}` : ""}</li>`).join("")}</ul></div>` : ""}
     ${!cap.result.lease_included && d.lease_total ? `<div>리스부채 ${fmt(M(d.lease_total))}백만원은 제외했습니다.</div>` : ""}
     ${(c.notes || []).length ? `<ul class="issue-list">${c.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
     ${c.metrics && c.metrics.annual && (c.metrics.annual.da_items || []).length ? `<div><b>감가상각비 근거 (${esc(c.metrics.annual.label)}, ${esc(c.metrics.annual.da_source || "")})</b><ul class="issue-list">${c.metrics.annual.da_items.map(i => `<li>${esc(i.account)} ${fmt(M(i.amount))}백만원</li>`).join("")}</ul></div>` : ""}
@@ -1481,7 +1481,7 @@ $("btnCapXlsx").onclick = async () => {
   const det = [["회사", "구분", "계정", "분류", "금액(백만원)"]];
   cs.forEach(c => { const d = c.interest_bearing_debt;
     d.items.forEach(i => det.push([c.corp_name, "합산", i.account, i.type, Math.round(M(i.amount))]));
-    d.review_items.forEach(i => det.push([c.corp_name, "검토(미합산)", i.account, "", Math.round(M(i.amount))]));
+    d.review_items.forEach(i => det.push([c.corp_name, "검토(미합산)" + (i.reason ? " · " + i.reason : ""), i.account, "", Math.round(M(i.amount))]));
     if (!r.lease_included && d.lease_total) det.push([c.corp_name, "제외(리스)", "리스부채", "", Math.round(M(d.lease_total))]); });
   const src = [["회사", "보고서", "기준", "접수번호", "DART 링크", "비고"]];
   r.companies.forEach(c => src.push(c.error ? [c.input, "", "", "", "", c.error] : [c.corp_name, c.report, c.basis, c.rcept_no, c.url, (c.notes || []).join(" / ")]));

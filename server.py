@@ -318,8 +318,10 @@ async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, c
             notes.append(f"주식 수를 가져오지 못했습니다: {e}")
         if s["interest_bearing_debt"]["approximate"]:
             notes.append("[주석 확인 필요] " + s["interest_bearing_debt"]["approximate_reason"])
+        if s["interest_bearing_debt"].get("lease_maybe_in_other"):
+            notes.append("재무상태표에 리스부채 계정이 따로 없습니다. 기타금융부채에 리스부채가 묶여 있을 수 있으니 주석(리스·금융부채 내역)에서 금액을 확인해 적용 이자부부채에 더하세요.")
         if s["interest_bearing_debt"]["review_items"]:
-            notes.append("review_items의 조정·우선주·파생 계정은 합산하지 않았습니다. 필요하면 반영하세요.")
+            notes.append("review_items의 계정(조정·우선주·파생, 리스가 묶였을 수 있는 기타금융부채 등)은 합산하지 않았습니다. 필요하면 반영하세요.")
         if s["totals"]["equity"] is None:
             notes.append("자본총계 계정을 찾지 못했습니다. rows로 직접 확인하세요.")
         mets = None
@@ -378,7 +380,7 @@ async def capital_structure(companies: list[str], year: int | None = None, perio
                       "자기주식수": (r["shares"].get("common") or {}).get("treasury"),
                       "발행주식총수": (r["shares"].get("common") or {}).get("issued"),
                       "유통보통주식수": (r["shares"].get("common") or {}).get("outstanding"),
-                      "주석확인필요": d["approximate"]})
+                      "리스부채_기타금융부채포함가능": d.get("lease_maybe_in_other", False), "주석확인필요": d["approximate"]})
     return {"year": year, "period": "회사별 최근 정기보고서" if period == "latest" else PERIOD_KO[period], "lease_included": include_lease,
             "summary_table": table, "companies": results}
 

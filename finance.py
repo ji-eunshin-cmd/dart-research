@@ -56,6 +56,7 @@ def _debt_type(k: str) -> str | None:
 
 
 _LEASE = r"리스부채"
+_OTHER_FIN_LIAB_IDS = {"ifrs-full_OtherCurrentFinancialLiabilities", "ifrs-full_OtherNoncurrentFinancialLiabilities"}
 _REVIEW = r"할인발행차금|전환권조정|신주인수권조정|교환권조정|상환할증금|우선주부채|상환우선주|파생상품부채|파생금융부채"
 _DEBT_IDS = {
     "ifrs-full_ShorttermBorrowings": "단기차입금", "dart_ShortTermBorrowings": "단기차입금",
@@ -135,10 +136,23 @@ def classify_debt(rows: list[dict], include_lease: bool) -> dict:
             included.append({**item, "type": typ})
     if include_lease:
         included += lease_rows
+    lease_hidden = []
+    if include_lease and not lease_rows:
+        # 리스부채 계정이 따로 없으면 '기타금융부채'에 묶여 있는 경우가 많음 → 합산하지 않고 검토 계정으로 알림
+        for r in rows:
+            if r.get("sj_div") != "BS":
+                continue
+            nm, aid = (r.get("account_nm") or "").strip(), r.get("account_id") or ""
+            v = amount(r.get("thstrm_amount"))
+            if v and (aid in _OTHER_FIN_LIAB_IDS or _key(nm) in ("기타금융부채", "기타유동금융부채", "기타비유동금융부채")):
+                item = {"account": nm + (" (유동)" if "Current" in aid and "Noncurrent" not in aid else " (비유동)" if "Noncurrent" in aid else ""),
+                        "account_id": aid, "amount": v, "reason": "리스부채가 포함되어 있을 수 있음"}
+                review.append(item)
+                lease_hidden.append(item)
     total = sum(i["amount"] for i in included)
     aggregated = [i for i in included if i["type"] == "금융부채(묶음)"]
     return {"items": included, "total": total, "lease_total": sum(i["amount"] for i in lease_rows),
-            "lease_included": include_lease, "review_items": review,
+            "lease_included": include_lease, "review_items": review, "lease_maybe_in_other": bool(lease_hidden),
             "approximate": bool(aggregated),
             "approximate_reason": ("재무상태표에 차입금이 '단기·장기금융부채'로 묶여 있어 그 금액을 그대로 넣었습니다. "
                                    "리스부채·기타 금융부채가 섞여 있을 수 있으니 사업보고서 주석의 차입금·사채·리스부채 내역으로 확인하세요.")
