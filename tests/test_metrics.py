@@ -112,3 +112,27 @@ def test_other_financial_liabilities_without_borrowings_are_reviewed_not_summed(
     # '단기금융부채'처럼 기타가 아닌 묶음 계정은 지금처럼 합산
     d2 = classify_debt([{"sj_div": "BS", "account_id": "-", "account_nm": "단기금융부채", "thstrm_amount": "300"}], True)
     assert d2["total"] == 300 and d2["items"][0]["type"] == "금융부채(묶음)"
+
+
+def test_shares_fall_back_to_previous_report_when_blank():
+    import asyncio
+    import server
+    calls = []
+
+    class C:
+        async def share_count(self, code, year, reprt):
+            calls.append((year, reprt))
+            if reprt == "11014":   # 3분기: 생략돼 빈 값
+                return [{"se": "보통주", "istc_totqy": "-", "tesstk_co": "-", "distb_stock_co": "-"}]
+            if reprt == "11012":   # 반기
+                return [{"se": "보통주", "istc_totqy": "37,071,266", "tesstk_co": "1,424,340", "distb_stock_co": "35,646,926"}]
+            return []
+    sh, note = asyncio.run(server._shares_with_fallback(C(), "x", 2026, "q3"))
+    assert sh["common"]["issued"] == 37071266 and sh["common"]["treasury"] == 1424340 and sh["common"]["source"] == "2026 반기보고서"
+    assert "직전 보고서(2026 반기보고서)" in note and calls == [("2026", "11014"), ("2026", "11012")]
+
+    class D:   # 자기주식이 없어서 '-'인 회사는 0주로 보고 직전 보고서로 가지 않음
+        async def share_count(self, code, year, reprt):
+            return [{"se": "보통주", "istc_totqy": "1,000", "tesstk_co": "-", "distb_stock_co": "1,000"}]
+    sh2, note2 = asyncio.run(server._shares_with_fallback(D(), "x", 2026, "q1"))
+    assert sh2["common"]["treasury"] == 0 and note2 is None

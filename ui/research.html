@@ -1307,7 +1307,7 @@ function capRender(){
       <td class="num">${fmt(M(t0.cash))}</td><td class="num">${fmt(k.debtM - (M(t0.cash) || 0))}</td>
       <td class="num">${fmt(M(t0.liabilities))}</td><td class="num">${fmt(M(t0.equity))}</td><td class="num">${t0.nci == null ? "–" : fmt(M(t0.nci))}</td>
       <td class="num">${fmt(c.ratios.debt_ratio_pct, 1)}%</td><td class="num">${fmt(k.bookDE, 1)}%</td>
-      <td class="num">${fmt((c.shares.common || {}).treasury)}</td><td class="num">${fmt(k.sh)}</td>
+      <td class="num">${fmt((c.shares.common || {}).treasury)}${(c.shares.common || {}).source ? `<span class="flag" title="최근 보고서에 주식 총수가 비어 있어 ${esc(c.shares.common.source)} 값을 씀">직전</span>` : ""}</td><td class="num">${fmt(k.sh)}${(c.shares.common || {}).source ? `<span class="flag" title="최근 보고서에 주식 총수가 비어 있어 ${esc(c.shares.common.source)} 값을 씀">직전</span>` : ""}</td>
       <td class="num"><input type="text" inputmode="numeric" aria-label="${esc(c.corp_name)} 주가" data-price="${c.corp_code}" value="${k.price ? fmt(k.price) : ""}" placeholder="입력"></td>
       <td class="num calc">${fmt(k.mcap)}</td><td class="num calc">${k.de == null ? "–" : fmt(k.de, 1) + "%"}</td></tr>`;
   }).join("");

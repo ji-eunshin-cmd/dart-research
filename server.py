@@ -294,6 +294,55 @@ async def _metrics_for(c: DartClient, code: str, rows: list[dict], fs: str, year
                     "cur_label": f"{year} {PERIOD_KO[period]} 누적", "prior_label": f"{year - 1} 동기 누적", **lt}, "notes": notes}
 
 
+_PREV = {"annual": ("q3", 0), "q3": ("half", 0), "half": ("q1", 0), "q1": ("annual", -1)}
+
+
+async def _share_rows(c: DartClient, code: str, year: int, period: str) -> dict:
+    out = {}
+    for r in await c.share_count(code, str(year), PERIODS[period]):
+        if (r.get("se") or "").replace(" ", "") in ("보통주", "합계"):
+            key = "common" if "보통" in r.get("se", "") else "total"
+            row = {"issued": _num(r.get("istc_totqy")), "treasury": _num(r.get("tesstk_co")), "outstanding": _num(r.get("distb_stock_co"))}
+            if row["issued"] is not None and row["treasury"] is None and str(r.get("tesstk_co") or "").strip() in ("-", "0"):
+                row["treasury"] = 0  # 발행주식 수가 있는데 자기주식이 '-'면 0주
+            out[key] = row
+    return out
+
+
+async def _shares_with_fallback(c: DartClient, code: str, year: int, period: str) -> tuple[dict, str | None]:
+    """고른 보고서의 주식 총수 현황. 분기보고서에서 생략돼 발행주식총수·자기주식수가 비어 있으면
+    바로 직전 정기보고서 한 건까지 가서 빈 값만 채웁니다."""
+    try:
+        shares = await _share_rows(c, code, year, period)
+    except DartError:
+        shares = {}
+    need = lambda sh: not sh.get("common") or any((sh["common"] or {}).get(k) is None for k in ("issued", "treasury"))
+    if not need(shares):
+        return shares, None
+    pp, dy = _PREV[period]
+    try:
+        prev = await _share_rows(c, code, year + dy, pp)
+    except DartError:
+        prev = {}
+    label = f"{year + dy} {PERIOD_KO[pp]}"
+    filled = []
+    for key in ("common", "total"):
+        cur_, old = dict(shares.get(key) or {}), prev.get(key) or {}
+        for k, nm in (("issued", "발행주식총수"), ("treasury", "자기주식수"), ("outstanding", "유통주식수")):
+            if cur_.get(k) is None and old.get(k) is not None:
+                cur_[k] = old[k]
+                if key == "common":
+                    filled.append(nm)
+        if cur_:
+            cur_.setdefault("issued", None); cur_.setdefault("treasury", None); cur_.setdefault("outstanding", None)
+            if filled and key == "common":
+                cur_["source"] = label
+            shares[key] = cur_
+    if filled:
+        return shares, f"최근 보고서({year} {PERIOD_KO[period]})에 주식 총수 현황이 비어 있어 {'·'.join(filled)}는 직전 보고서({label}) 값을 썼습니다."
+    return shares, f"최근 보고서와 직전 보고서({label}) 모두 주식 총수 현황이 비어 있습니다. 발행주식총수·자기주식수를 직접 확인하세요."
+
+
 async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, consolidated: bool, include_lease: bool,
                        include_metrics: bool = True) -> dict:
     try:
@@ -307,15 +356,9 @@ async def _one_capital(c: DartClient, ref: str, year: int | None, period: str, c
         else:
             rows, fs, notes = await _statements(c, code, year, period, consolidated)
         s = summarize(rows, include_lease)
-        shares = {}
-        try:
-            for r in await c.share_count(code, str(year), PERIODS[period]):  # 고른 보고서와 같은 시점
-                if (r.get("se") or "").replace(" ", "") in ("보통주", "합계"):
-                    key = "common" if "보통" in r.get("se", "") else "total"
-                    shares[key] = {"issued": _num(r.get("istc_totqy")), "treasury": _num(r.get("tesstk_co")),
-                                   "outstanding": _num(r.get("distb_stock_co"))}
-        except DartError as e:
-            notes.append(f"주식 수를 가져오지 못했습니다: {e}")
+        shares, shares_note = await _shares_with_fallback(c, code, year, period)
+        if shares_note:
+            notes.append(shares_note)
         if s["interest_bearing_debt"]["approximate"]:
             notes.append("[주석 확인 필요] " + s["interest_bearing_debt"]["approximate_reason"])
         if s["interest_bearing_debt"].get("lease_maybe_in_other"):
