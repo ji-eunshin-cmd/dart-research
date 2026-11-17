@@ -1435,83 +1435,111 @@ for (const id of ["capWantCap", "capWantMet"]) $(id).addEventListener("change", 
   capTargets(); capSaveInputs();
 });
 
-// 엑셀 (SheetJS는 내보낼 때만 불러옴)
-function loadXLSX(){
-  if (window.XLSX) return Promise.resolve(window.XLSX);
-  return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    sc.onload = () => res(window.XLSX); sc.onerror = () => rej(new Error("load")); document.head.appendChild(sc); });
+// 엑셀 (ExcelJS는 내보낼 때만 불러옴 — 서식·수식·드롭다운까지 씀)
+function loadExcelJS(){
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+    sc.onload = () => res(window.ExcelJS); sc.onerror = () => rej(new Error("load")); document.head.appendChild(sc); });
 }
+// 팀 양식: 맑은 고딕 12, 머리글·평균 줄 회청색(D6DCE4), 손대는 칸(적용 이자부부채·검토) 연노랑(FFF2CC)
+const XL = {font: {name: "맑은 고딕", size: 12}, head: "FFD6DCE4", edit: "FFFFF2CC"};
+const xlFill = argb => ({type: "pattern", pattern: "solid", fgColor: {argb}});
+const DEBT_SHEET = "이자부부채 계정근거";
 $("btnCapXlsx").onclick = async () => {
   const st = $("capSaveStatus"), r = cap.result;
   if (!downloadsNs){ st.textContent = "이 화면에서는 파일 저장을 쓸 수 없습니다."; return; }
   st.textContent = "엑셀 만드는 중…";
-  let X; try { X = await loadXLSX(); } catch { st.textContent = "엑셀 도구를 불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요."; return; }
+  let EJ; try { EJ = await loadExcelJS(); } catch { st.textContent = "엑셀 도구를 불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요."; return; }
   const cs = r.companies.filter(c => !c.error);
-  const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "비지배지분", "부채비율(%)", "장부가 D/E(%)", "자기주식수", "발행주식총수", "주가(원)", "시가총액", "Debt / Equity(%)", "주석 확인"];
-  const aoa = [[`대용기업 자본구조 · ${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"} · 단위 백만원(주식수·주가 제외)`], H];
-  cs.forEach(c => { const k = capRow(c);
-    aoa.push([c.corp_name, c.corp_code, c.basis, c.report, k.debtM, Math.round(M(c.interest_bearing_debt.total)), Math.round(M(c.totals.cash) || 0), null,
-              Math.round(M(c.totals.liabilities)), Math.round(M(c.totals.equity)), c.totals.nci == null ? null : Math.round(M(c.totals.nci)), null, null,
-              (c.shares.common || {}).treasury ?? null, k.sh, k.price, null, null, c.interest_bearing_debt.approximate ? "Y" : ""]); });
-  const ws = X.utils.aoa_to_sheet(aoa);
-  // 수식 칸은 계산값도 같이 넣어야 파일에 남습니다(값 없는 수식 칸은 SheetJS가 쓰지 않음)
-  const F = (f, v) => v == null || !isFinite(v) ? {t: "s", f, v: ""} : {t: "n", f, v};
-  const vals = [];
-  cs.forEach((c, i) => { const R = i + 3, k = capRow(c);  // 엑셀 행 번호
-    const cashM = Math.round(M(c.totals.cash) || 0), liabM = Math.round(M(c.totals.liabilities)), eqM = Math.round(M(c.totals.equity));
-    const nciM = c.totals.nci == null ? 0 : Math.round(M(c.totals.nci)), mcap = k.price && k.sh ? k.price * k.sh / 1e6 : null;
-    const de = mcap ? k.debtM / (mcap + nciM) * 100 : null; vals.push(de);
-    ws[`H${R}`] = F(`E${R}-G${R}`, k.debtM - cashM);
-    ws[`L${R}`] = F(`IFERROR(I${R}/J${R}*100,"")`, eqM ? liabM / eqM * 100 : null);
-    ws[`M${R}`] = F(`IFERROR(E${R}/J${R}*100,"")`, eqM ? k.debtM / eqM * 100 : null);
-    ws[`Q${R}`] = F(`IF(P${R}="","",P${R}*O${R}/1000000)`, mcap);
-    ws[`R${R}`] = F(`IF(Q${R}="","",E${R}/(Q${R}+N(K${R}))*100)`, de);  // 이자부부채 ÷ (시가총액 + 비지배지분)
-  });
-  const last = cs.length + 2, sumR = last + 1;
-  X.utils.sheet_add_aoa(ws, [["평균"]], {origin: `A${sumR}`}); X.utils.sheet_add_aoa(ws, [["중앙값"]], {origin: `A${sumR + 1}`});
-  const okv = vals.filter(v => v != null), sorted = [...okv].sort((a, b) => a - b), mid = sorted.length >> 1;
-  ws[`R${sumR}`] = F(`IFERROR(AVERAGE(R3:R${last}),"")`, okv.length ? okv.reduce((a, b) => a + b, 0) / okv.length : null);
-  ws[`R${sumR + 1}`] = F(`IFERROR(MEDIAN(R3:R${last}),"")`, okv.length ? (sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2) : null);
-  X.utils.sheet_add_aoa(ws, [["(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산 (단기금융상품 등 다른 금융자산은 차감하지 않음)"]], {origin: `A${sumR + 3}`});
-  X.utils.sheet_add_aoa(ws, [["Debt / Equity = 적용 이자부부채 ÷ (시가총액 + 비지배지분) · 시가총액 = 주가 × 발행주식총수(자기주식 차감 안 함)"]], {origin: `A${sumR + 4}`});
-  ws["!ref"] = `A1:S${sumR + 4}`;
-  ws["!cols"] = [{wch: 22}, {wch: 10}, {wch: 6}, {wch: 20}, ...Array(7).fill({wch: 13}), {wch: 11}, {wch: 11}, {wch: 13}, {wch: 14}, {wch: 10}, {wch: 13}, {wch: 14}, {wch: 8}];
-  for (let R = 3; R <= sumR + 1; R++) for (const col of "EFGHIJKNOPQ") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
-  for (let R = 3; R <= sumR + 1; R++) for (const col of "LMR") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "0.0"; }
-  const det = [["회사", "구분", "계정", "분류", "금액(백만원)"]];
-  cs.forEach(c => { const d = c.interest_bearing_debt;
-    d.items.forEach(i => det.push([c.corp_name, "합산", i.account, i.type, Math.round(M(i.amount))]));
-    d.review_items.forEach(i => det.push([c.corp_name, "검토(미합산)" + (i.reason ? " · " + i.reason : ""), i.account, "", Math.round(M(i.amount))]));
-    if (!r.lease_included && d.lease_total) det.push([c.corp_name, "제외(리스)", "리스부채", "", Math.round(M(d.lease_total))]); });
-  const src = [["회사", "보고서", "기준", "접수번호", "DART 링크", "비고"]];
-  r.companies.forEach(c => src.push(c.error ? [c.input, "", "", "", "", c.error] : [c.corp_name, c.report, c.basis, c.rcept_no, c.url, (c.notes || []).join(" / ")]));
-  const met = [["주요 재무 지표 · 단위 백만원 · LTM = 직전 사업연도 + 최근 보고서 당기 누적 − 전기 동기 누적 · EBITDA = 영업이익 + 감가상각비"]];
-  const mws = X.utils.aoa_to_sheet(met);
-  let row = 3; const mcells = [];
-  for (const [kind, title] of [["ltm", "LTM"], ["annual", "직전 연간"]]){
-    X.utils.sheet_add_aoa(mws, [[title], ["회사", "매출액", "영업이익", "당기순이익", "감가상각비", "법인세비용", "EBITDA", "지배주주귀속순이익", "기준 보고서", "비고"]], {origin: `A${row}`});
-    row += 2;
-    cs.forEach(c => { const v = metVals(c.metrics && c.metrics[kind]);
-      const note = !v ? (((c.metrics || {}).notes || [])[0] || "") : [v.da == null ? "감가상각비 주석 확인" : "", v.niTotal ? "지배주주 구분 없어 당기순이익" : ""].filter(Boolean).join(" / ");
-      const R0 = v => v == null ? null : Math.round(v);
-      X.utils.sheet_add_aoa(mws, [[c.corp_name, v ? R0(v.revenue) : null, v ? R0(v.operating_income) : null, v ? R0(v.net_income) : null, v ? R0(v.da) : null, v ? R0(v.income_tax) : null, null,
-                                   v ? R0(v.ni_parent) : null, v ? v.label : "", note]], {origin: `A${row}`});
-      const e = v && v.operating_income != null && v.da != null ? Math.round(v.operating_income) + Math.round(v.da) : null;
-      const ef = `IF(OR(C${row}="",E${row}=""),"",C${row}+E${row})`;  // EBITDA = 영업이익 + 감가상각비
-      mws[`G${row}`] = e == null ? {t: "s", f: ef, v: ""} : {t: "n", f: ef, v: e};
-      mcells.push(row); row++; });
-    row++;
-  }
-  mws["!ref"] = `A1:J${row}`;
-  mws["!cols"] = [{wch: 22}, ...Array(7).fill({wch: 14}), {wch: 44}, {wch: 30}];
-  for (const R of mcells) for (const col of "BCDEFGH") { const cell = mws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
-  const wb = X.utils.book_new();
+  const wb = new EJ.Workbook();
   const wantCap = $("capWantCap").checked, wantMet = $("capWantMet").checked && cs.some(c => c.metrics);
-  if (wantCap || !wantMet) X.utils.book_append_sheet(wb, ws, "자본구조");
-  if (wantMet) X.utils.book_append_sheet(wb, mws, "주요 재무 지표");
-  const wd = X.utils.aoa_to_sheet(det); wd["!cols"] = [{wch: 22}, {wch: 12}, {wch: 22}, {wch: 16}, {wch: 14}]; if (wantCap || !wantMet) X.utils.book_append_sheet(wb, wd, "이자부부채 계정근거");
-  const wsrc = X.utils.aoa_to_sheet(src); wsrc["!cols"] = [{wch: 22}, {wch: 20}, {wch: 6}, {wch: 16}, {wch: 50}, {wch: 80}]; X.utils.book_append_sheet(wb, wsrc, "출처");
-  const buf = X.write(wb, {type: "array", bookType: "xlsx"});
+  const R0 = v => v == null || !isFinite(v) ? null : Math.round(v);
+  const fx = (formula, result) => ({formula, result: result == null || !isFinite(result) ? "" : result});
+  const styleAll = ws => ws.eachRow({includeEmpty: false}, row => row.eachCell({includeEmpty: true}, c => { c.font = {...XL.font, ...(c.font && c.font.bold ? {bold: true} : {})}; }));
+
+  // ── 이자부부채 계정근거: 구분(합산/제외)만 바꾸면 자본구조 E열이 따라 바뀜
+  const dq = [];  // [회사, 구분, 계정, 분류, 금액, 검토, 손볼 칸?]
+  cs.forEach(c => { const d = c.interest_bearing_debt;
+    d.items.forEach(i => dq.push([c.corp_name, "합산", i.account, i.type, R0(M(i.amount)), i.type === "금융부채(묶음)" ? "묶음 계정 — 차입금·리스·기타 금융부채가 섞였을 수 있어 주석 확인" : "", i.type === "금융부채(묶음)"]));
+    d.review_items.forEach(i => dq.push([c.corp_name, "제외", i.account, "", R0(M(i.amount)), i.reason || "조정·우선주·파생 계정 — 필요하면 합산으로", true]));
+    if (!r.lease_included && d.lease_total) dq.push([c.corp_name, "제외", "리스부채", "리스부채", R0(M(d.lease_total)), "리스부채 제외로 조회함", true]); });
+
+  if (wantCap || !wantMet){
+    // ── 자본구조
+    const ws = wb.addWorksheet("자본구조", {views: [{state: "frozen", xSplit: 4, ySplit: 2, zoomScale: 55}]});
+    ws.getCell("A1").value = `대용기업 자본구조 · ${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"} · 단위 백만원(주식수·주가 제외)`;
+    const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "비지배지분", "부채비율(%)", "장부가 D/E(%)", "자기주식수", "발행주식총수", "주가(원)", "시가총액", "Debt / Equity(%)", "주석 확인"];
+    ws.getRow(2).values = H;
+    H.forEach((_, k) => { ws.getRow(2).getCell(k + 1).fill = xlFill(XL.head); });
+    const vals = [];
+    cs.forEach((c, i) => { const R = i + 3, k = capRow(c), row = ws.getRow(R);
+      const sumM = dq.filter(x => x[0] === c.corp_name && x[1] === "합산").reduce((a, x) => a + (x[4] || 0), 0);
+      const cashM = R0(M(c.totals.cash)) || 0, liabM = R0(M(c.totals.liabilities)), eqM = R0(M(c.totals.equity)), nciM = c.totals.nci == null ? null : R0(M(c.totals.nci));
+      const mcap = k.price && k.sh ? k.price * k.sh / 1e6 : null, de = mcap ? sumM / (mcap + (nciM || 0)) * 100 : null; vals.push(de);
+      row.values = [c.corp_name, c.corp_code, c.basis, c.report,
+        fx(`SUMIFS('${DEBT_SHEET}'!$E:$E,'${DEBT_SHEET}'!$A:$A,A${R},'${DEBT_SHEET}'!$B:$B,"합산")`, sumM),
+        R0(M(c.interest_bearing_debt.total)), cashM, fx(`E${R}-G${R}`, sumM - cashM), liabM, eqM, nciM,
+        fx(`IFERROR(I${R}/J${R}*100,"")`, eqM ? liabM / eqM * 100 : null), fx(`IFERROR(E${R}/J${R}*100,"")`, eqM ? sumM / eqM * 100 : null),
+        (c.shares.common || {}).treasury ?? null, k.sh, k.price || null,
+        fx(`IF(P${R}="","",P${R}*O${R}/1000000)`, mcap), fx(`IF(Q${R}="","",E${R}/(Q${R}+N(K${R}))*100)`, de),   // Debt / Equity = 이자부부채 ÷ (시가총액 + 비지배지분)
+        c.interest_bearing_debt.approximate || c.interest_bearing_debt.lease_maybe_in_other || c.interest_bearing_debt.review_items.length ? "Y" : ""];
+      row.getCell(5).fill = xlFill(XL.edit);
+    });
+    const last = cs.length + 2, sumR = last + 1, okv = vals.filter(v => v != null), sorted = [...okv].sort((a, b) => a - b), mid = sorted.length >> 1;
+    ws.getCell(`A${sumR}`).value = "평균"; ws.getCell(`A${sumR + 1}`).value = "중앙값";
+    ws.getCell(`R${sumR}`).value = fx(`IFERROR(AVERAGE(R3:R${last}),"")`, okv.length ? okv.reduce((a, b) => a + b, 0) / okv.length : null);
+    ws.getCell(`R${sumR + 1}`).value = fx(`IFERROR(MEDIAN(R3:R${last}),"")`, okv.length ? (sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2) : null);
+    for (const R of [sumR, sumR + 1]) for (let k = 1; k <= 18; k++) ws.getRow(R).getCell(k).fill = xlFill(XL.head);
+    ws.getCell(`A${sumR + 3}`).value = "(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산 (단기금융상품 등 다른 금융자산은 차감하지 않음)";
+    ws.getCell(`A${sumR + 4}`).value = "Debt / Equity = 적용 이자부부채 ÷ (시가총액 + 비지배지분) · 시가총액 = 주가 × 발행주식총수(자기주식 차감 안 함)";
+    ws.getCell(`A${sumR + 5}`).value = `적용 이자부부채(E열)는 '${DEBT_SHEET}' 시트에서 구분이 '합산'인 금액의 합계입니다. 주석을 확인해 그 시트의 구분(합산/제외)만 바꾸면 됩니다. 주가(P열)는 평가기준일 종가를 넣으세요.`;
+    [25.1, 11.9, 7.5, 22.9, 15.2, 13, 13, 13, 13, 13, 13, 13, 13, 15.2, 16.3, 11.9, 15.2, 16.3, 9.7].forEach((w, k) => { ws.getColumn(k + 1).width = w; });
+    for (let R = 3; R <= sumR + 1; R++){ for (const col of "EFGHIJKNOQ") ws.getCell(`${col}${R}`).numFmt = "#,##0"; for (const col of "LMR") ws.getCell(`${col}${R}`).numFmt = "0.0"; }
+    styleAll(ws);
+
+    // ── 이자부부채 계정근거
+    const wd = wb.addWorksheet(DEBT_SHEET, {views: [{state: "frozen", ySplit: 1, zoomScale: 70}]});
+    wd.getRow(1).values = ["회사", "구분", "계정", "분류", "금액(백만원)", "검토"];
+    wd.getCell("F1").fill = xlFill(XL.edit);
+    dq.forEach((x, i) => { const R = i + 2; wd.getRow(R).values = x.slice(0, 6);
+      wd.getCell(`B${R}`).dataValidation = {type: "list", allowBlank: false, formulae: ['"합산,제외"'], showErrorMessage: true, errorTitle: "구분", error: "합산 또는 제외만 넣을 수 있습니다."};
+      wd.getCell(`E${R}`).numFmt = "#,##0";
+      if (x[6]) wd.getCell(`B${R}`).fill = xlFill(XL.edit); });
+    [25.1, 14.1, 25.1, 18.5, 16.3, 60].forEach((w, k) => { wd.getColumn(k + 1).width = w; });
+    styleAll(wd);
+  }
+
+  if (wantMet){
+    // ── 주요 재무 지표
+    const mws = wb.addWorksheet("주요 재무 지표", {views: [{state: "frozen", xSplit: 1, zoomScale: 70}]});
+    mws.getCell("A1").value = "주요 재무 지표 · 단위 백만원 · LTM = 직전 사업연도 + 최근 보고서 당기 누적 − 전기 동기 누적 · EBITDA = 영업이익 + 감가상각비";
+    let row = 3;
+    for (const [kind, title] of [["ltm", "LTM"], ["annual", "직전 연간"]]){
+      mws.getCell(`A${row}`).value = title; mws.getCell(`A${row}`).font = {...XL.font, bold: true}; row++;
+      mws.getRow(row).values = ["회사", "매출액", "영업이익", "당기순이익", "감가상각비", "법인세비용", "EBITDA", "지배주주귀속순이익", "기준 보고서", "비고"];
+      for (let k = 1; k <= 10; k++) mws.getRow(row).getCell(k).fill = xlFill(XL.head);
+      row++;
+      cs.forEach(c => { const v = metVals(c.metrics && c.metrics[kind]);
+        const note = !v ? (((c.metrics || {}).notes || [])[0] || "") : [v.da == null ? "감가상각비 주석 확인" : "", v.niTotal ? "지배주주 구분 없어 당기순이익" : ""].filter(Boolean).join(" / ");
+        const e = v && v.operating_income != null && v.da != null ? R0(v.operating_income) + R0(v.da) : null;
+        mws.getRow(row).values = [c.corp_name, v ? R0(v.revenue) : null, v ? R0(v.operating_income) : null, v ? R0(v.net_income) : null, v ? R0(v.da) : null, v ? R0(v.income_tax) : null,
+          fx(`IF(OR(C${row}="",E${row}=""),"",C${row}+E${row})`, e), v ? R0(v.ni_parent) : null, v ? v.label : "", note];   // EBITDA = 영업이익 + 감가상각비
+        for (const col of "BCDEFGH") mws.getCell(`${col}${row}`).numFmt = "#,##0";
+        row++; });
+      row++;
+    }
+    [25.1, ...Array(7).fill(15), 44, 30].forEach((w, k) => { mws.getColumn(k + 1).width = w; });
+    styleAll(mws);
+  }
+
+  // ── 출처
+  const wsrc = wb.addWorksheet("출처");
+  wsrc.getRow(1).values = ["회사", "보고서", "기준", "접수번호", "DART 링크", "비고"];
+  r.companies.forEach((c, i) => { wsrc.getRow(i + 2).values = c.error ? [c.input, "", "", "", "", c.error] : [c.corp_name, c.report, c.basis, c.rcept_no, c.url, (c.notes || []).join(" / ")]; });
+  [25.1, 22.9, 7.5, 18.5, 55.9, 88.9].forEach((w, k) => { wsrc.getColumn(k + 1).width = w; });
+  styleAll(wsrc);
+
+  const buf = new Uint8Array(await wb.xlsx.writeBuffer());
   try { await downloadsNs.save({filename: `대용기업_자본구조_${r.year || today()}.xlsx`, data: buf}); st.textContent = "저장했습니다."; }
   catch (e){ st.textContent = e && e.code === "declined" ? "저장을 취소했습니다." : "저장하지 못했습니다."; }
 };
