@@ -275,7 +275,7 @@ table.fin .user{color:var(--muted);font-size:11px}
   </div>
 
   <div id="viewCap" class="view" hidden>
-  <p class="intro">대용기업을 검색하면 DART 데이터에서 이자부부채를 추출하여 합산하고, 자본구조·유통주식수 등을 표로 출력합니다. 평가기준일의 주가를 기재하면 시가 기준 자본구조가 계산되고, 엑셀로 내려받을 수 있습니다.</p>
+  <p class="intro">대용기업을 검색하면 DART 데이터에서 이자부부채를 추출하여 합산하고, 자본구조·발행주식수 등을 표로 출력합니다. 평가기준일의 주가를 기재하면 시가 기준 자본구조가 계산되고, 엑셀로 내려받을 수 있습니다.</p>
   <div class="tool-top"><button class="btn quiet" id="btnResetC" type="button">초기화</button></div>
   <section class="step" aria-labelledby="c1h">
     <div class="step-h"><span class="n">1</span><h2 id="c1h">대용기업</h2><span class="aside" id="capCount">최대 15곳</span></div>
@@ -313,7 +313,7 @@ table.fin .user{color:var(--muted);font-size:11px}
     <div class="tbl-wrap"><table class="t cap" id="capTable"></table></div>
     <div class="cap-sum" id="capSum" aria-live="polite"></div>
     <p class="foot" style="margin:0">(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산. 적용 이자부부채를 고치면 함께 바뀌고, 리스부채는 위 '리스부채 포함' 선택을 따릅니다. 단기금융상품 등 다른 금융자산은 빼지 않았습니다.</p>
-    <p class="foot" style="margin:0">금액 단위 백만원. <b>적용 이자부부채</b>는 주석 확인 후 고칠 수 있고, <b>주가</b>(평가기준일 종가)를 넣으면 시가총액과 Debt / Equity(= 이자부부채 ÷ (시가총액 + 비지배지분))가 계산됩니다. 회사명을 누르면 넣은 계정과 출처가 보입니다.</p>
+    <p class="foot" style="margin:0">금액 단위 백만원. <b>적용 이자부부채</b>는 주석 확인 후 고칠 수 있고, <b>주가</b>(평가기준일 종가)를 넣으면 시가총액과 Debt / Equity(= 이자부부채 ÷ (시가총액 + 비지배지분))가 계산됩니다. 시가총액 = 주가 × 발행주식총수이며, 자기주식은 차감하지 않습니다. 회사명을 누르면 넣은 계정과 출처가 보입니다.</p>
     <div id="capDetail" class="cap-detail"></div>
   </section>
   <section class="step" aria-labelledby="c3h" id="capSecMet">
@@ -1206,7 +1206,7 @@ const fmt = (v, d = 0) => v == null || !isFinite(v) ? "–" : Number(v).toLocale
 function capRow(c){
   const o = cap.over[c.corp_code] || {};
   const debtM = o.debt != null ? o.debt : Math.round(M(c.interest_bearing_debt.total));
-  const sh = (c.shares && c.shares.common && c.shares.common.outstanding) || null;
+  const sh = (c.shares && c.shares.common && c.shares.common.issued) || null;   // 시가총액은 발행주식총수 기준(자기주식 차감 안 함, 리뷰 노트 A4)
   const mcap = o.price && sh ? o.price * sh / 1e6 : null;
   const eqM = M(c.totals.equity), nciM = M(c.totals.nci) || 0;
   return {debtM, sh, price: o.price || null, mcap, nciM,
@@ -1296,7 +1296,7 @@ function capRender(){
   if (!r){ $("capWarn").hidden = true; t.innerHTML = `<tbody><tr><td class="empty" style="white-space:normal">대용기업을 넣고 <b>DART에서 가져오기</b>를 누르면 여기에 표가 나옵니다.</td></tr></tbody>`; $("capDetail").innerHTML = ""; $("capSum").innerHTML = ""; $("capBasis").textContent = ""; $("btnCapXlsx").disabled = true; metRender(); return; }
   $("capWarn").hidden = false;
   $("capBasis").textContent = `${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"}`;
-  const head = `<thead><tr><th>회사</th><th class="num">적용 이자부부채</th><th class="num">현금</th><th class="num">순차입금(*)</th><th class="num">부채총계</th><th class="num">자본총계</th><th class="num">비지배지분</th><th class="num">부채비율</th><th class="num">장부가 D/E</th><th class="num">자기주식수</th><th class="num">유통보통주식수</th><th class="num">주가(원)</th><th class="num">시가총액</th><th class="num" title="이자부부채 ÷ (시가총액 + 비지배지분)">Debt / Equity</th></tr></thead>`;
+  const head = `<thead><tr><th>회사</th><th class="num">적용 이자부부채</th><th class="num">현금</th><th class="num">순차입금(*)</th><th class="num">부채총계</th><th class="num">자본총계</th><th class="num">비지배지분</th><th class="num">부채비율</th><th class="num">장부가 D/E</th><th class="num">자기주식수</th><th class="num">발행주식총수</th><th class="num">주가(원)</th><th class="num">시가총액</th><th class="num" title="이자부부채 ÷ (시가총액 + 비지배지분)">Debt / Equity</th></tr></thead>`;
   const rows = r.companies.map((c, i) => {
     if (c.error) return `<tr class="err"><td>${esc(c.input)}</td><td colspan="13" style="white-space:normal">${esc(c.error)}</td></tr>`;
     const k = capRow(c), t0 = c.totals;
@@ -1447,7 +1447,7 @@ $("btnCapXlsx").onclick = async () => {
   st.textContent = "엑셀 만드는 중…";
   let X; try { X = await loadXLSX(); } catch { st.textContent = "엑셀 도구를 불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요."; return; }
   const cs = r.companies.filter(c => !c.error);
-  const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "비지배지분", "부채비율(%)", "장부가 D/E(%)", "자기주식수", "유통보통주식수", "주가(원)", "시가총액", "Debt / Equity(%)", "주석 확인"];
+  const H = ["회사", "고유번호", "기준", "보고서", "적용 이자부부채", "공시 합산 이자부부채", "현금", "순차입금(*)", "부채총계", "자본총계", "비지배지분", "부채비율(%)", "장부가 D/E(%)", "자기주식수", "발행주식총수", "주가(원)", "시가총액", "Debt / Equity(%)", "주석 확인"];
   const aoa = [[`대용기업 자본구조 · ${r.year ? r.year + " " : ""}${r.period} · 리스부채 ${r.lease_included ? "포함" : "제외"} · 단위 백만원(주식수·주가 제외)`], H];
   cs.forEach(c => { const k = capRow(c);
     aoa.push([c.corp_name, c.corp_code, c.basis, c.report, k.debtM, Math.round(M(c.interest_bearing_debt.total)), Math.round(M(c.totals.cash) || 0), null,
@@ -1473,7 +1473,7 @@ $("btnCapXlsx").onclick = async () => {
   ws[`R${sumR}`] = F(`IFERROR(AVERAGE(R3:R${last}),"")`, okv.length ? okv.reduce((a, b) => a + b, 0) / okv.length : null);
   ws[`R${sumR + 1}`] = F(`IFERROR(MEDIAN(R3:R${last}),"")`, okv.length ? (sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2) : null);
   X.utils.sheet_add_aoa(ws, [["(*) 순차입금 = 적용 이자부부채 − 현금및현금성자산 (단기금융상품 등 다른 금융자산은 차감하지 않음)"]], {origin: `A${sumR + 3}`});
-  X.utils.sheet_add_aoa(ws, [["Debt / Equity = 적용 이자부부채 ÷ (시가총액 + 비지배지분)"]], {origin: `A${sumR + 4}`});
+  X.utils.sheet_add_aoa(ws, [["Debt / Equity = 적용 이자부부채 ÷ (시가총액 + 비지배지분) · 시가총액 = 주가 × 발행주식총수(자기주식 차감 안 함)"]], {origin: `A${sumR + 4}`});
   ws["!ref"] = `A1:S${sumR + 4}`;
   ws["!cols"] = [{wch: 22}, {wch: 10}, {wch: 6}, {wch: 20}, ...Array(7).fill({wch: 13}), {wch: 11}, {wch: 11}, {wch: 13}, {wch: 14}, {wch: 10}, {wch: 13}, {wch: 14}, {wch: 8}];
   for (let R = 3; R <= sumR + 1; R++) for (const col of "EFGHIJKNOPQ") { const cell = ws[`${col}${R}`]; if (cell) cell.z = "#,##0"; }
