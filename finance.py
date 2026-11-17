@@ -36,7 +36,7 @@ def _debt_type(k: str) -> str | None:
     """공백 뺀 계정명 → 이자부부채 종류 (해당 없으면 None)."""
     if re.search(r"이자|미지급|발행비|보증금|예수", k):
         return None
-    if "금융부채" in k and not re.search(r"파생|당기손익|기타금융부채|보증", k):
+    if "금융부채" in k and not re.search(r"파생|당기손익|기타.*금융부채|보증", k):
         return "금융부채(묶음)"  # 재무상태표에 차입금·사채·리스가 '금융부채'로 묶여 표시된 경우
     if "기업어음" in k or "전자단기사채" in k:
         return "기업어음"
@@ -112,7 +112,7 @@ def find_total(rows: list[dict], key: str, sj: tuple[str, ...]) -> int | None:
 
 def classify_debt(rows: list[dict], include_lease: bool) -> dict:
     """재무상태표 행에서 이자부부채 항목을 고름. 넣은 것·검토할 것·리스를 모두 근거로 돌려줌."""
-    included, review, lease_rows = [], [], []
+    included, review, lease_rows, other_fin = [], [], [], []
     for r in rows:
         if r.get("sj_div") != "BS":
             continue
@@ -122,6 +122,9 @@ def classify_debt(rows: list[dict], include_lease: bool) -> dict:
         if v is None or v == 0:
             continue
         item = {"account": nm, "account_id": aid, "amount": v}
+        if aid in _OTHER_FIN_LIAB_IDS or re.search(r"기타.*금융부채", k):
+            other_fin.append(item)
+            continue
         if re.search(_REVIEW, k):
             review.append(item)
             continue
@@ -136,27 +139,28 @@ def classify_debt(rows: list[dict], include_lease: bool) -> dict:
             included.append({**item, "type": typ})
     if include_lease:
         included += lease_rows
-    lease_hidden = []
-    if include_lease and not lease_rows:
-        # 리스부채 계정이 따로 없으면 '기타금융부채'에 묶여 있는 경우가 많음 → 합산하지 않고 검토 계정으로 알림
-        for r in rows:
-            if r.get("sj_div") != "BS":
-                continue
-            nm, aid = (r.get("account_nm") or "").strip(), r.get("account_id") or ""
-            v = amount(r.get("thstrm_amount"))
-            if v and (aid in _OTHER_FIN_LIAB_IDS or _key(nm) in ("기타금융부채", "기타유동금융부채", "기타비유동금융부채")):
-                item = {"account": nm + (" (유동)" if "Current" in aid and "Noncurrent" not in aid else " (비유동)" if "Noncurrent" in aid else ""),
-                        "account_id": aid, "amount": v, "reason": "리스부채가 포함되어 있을 수 있음"}
-                review.append(item)
-                lease_hidden.append(item)
+    # '기타 금융부채'는 미지급금·보증금 같은 비이자부 부채가 대부분이라 합산하지 않고 검토 계정으로 보여 줌.
+    # 다만 재무상태표에 차입금·리스부채 계정이 따로 없으면 그 안에 묶여 있을 수 있어 사유를 붙여 주석 확인을 요청함.
+    has_borrow = any(i["type"] != "리스부채" for i in included)
+    no_lease = include_lease and not lease_rows
+    why = [w for w, on in (("차입금", not has_borrow), ("리스부채", no_lease)) if on]
+    for it in other_fin:
+        aid = it["account_id"]
+        side = " (유동)" if aid.endswith("CurrentFinancialLiabilities") and "Noncurrent" not in aid else " (비유동)" if "Noncurrent" in aid else ""
+        w = "·".join(why)
+        reason = (w + ("이" if w and (ord(w[-1]) - 0xAC00) % 28 else "가") + " 포함되어 있을 수 있음") if why else "미지급금 등 비이자부 금융부채 — 이자부 차입 여부는 주석 확인"
+        review.append({**it, "account": it["account"] + (side if side and side.strip(" ()") not in it["account"] else ""), "reason": reason})
+    lease_hidden = bool(other_fin and no_lease)
+    borrow_hidden = bool(other_fin and not has_borrow)
     total = sum(i["amount"] for i in included)
     aggregated = [i for i in included if i["type"] == "금융부채(묶음)"]
     return {"items": included, "total": total, "lease_total": sum(i["amount"] for i in lease_rows),
-            "lease_included": include_lease, "review_items": review, "lease_maybe_in_other": bool(lease_hidden),
-            "approximate": bool(aggregated),
+            "lease_included": include_lease, "review_items": review, "lease_maybe_in_other": lease_hidden, "borrowings_maybe_in_other": borrow_hidden,
+            "approximate": bool(aggregated) or borrow_hidden,
             "approximate_reason": ("재무상태표에 차입금이 '단기·장기금융부채'로 묶여 있어 그 금액을 그대로 넣었습니다. "
                                    "리스부채·기타 금융부채가 섞여 있을 수 있으니 사업보고서 주석의 차입금·사채·리스부채 내역으로 확인하세요.")
-                                  if aggregated else None}
+                                  if aggregated else ("재무상태표에 차입금 계정이 따로 없고 '기타 금융부채'만 있습니다. 차입금이 그 안에 묶여 있을 수 있으니 "
+                                                      "주석의 차입금·금융부채 내역으로 확인해 적용 이자부부채에 더하세요.") if borrow_hidden else None}
 
 
 def pct(a: int | None, b: int | None) -> float | None:

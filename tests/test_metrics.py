@@ -97,3 +97,18 @@ def test_lease_hidden_in_other_financial_liabilities_is_flagged():
     rows.append({"sj_div": "BS", "account_id": "ifrs-full_LeaseLiabilities", "account_nm": "리스부채", "thstrm_amount": "3,000"})
     d2 = classify_debt(rows, True)
     assert d2["lease_maybe_in_other"] is False and d2["total"] == 19900
+
+
+def test_other_financial_liabilities_without_borrowings_are_reviewed_not_summed():
+    from finance import classify_debt
+    rows = [{"sj_div": "BS", "account_id": "ifrs-full_OtherCurrentFinancialLiabilities", "account_nm": "기타 유동 금융부채", "thstrm_amount": "6,426"},
+            {"sj_div": "BS", "account_id": "ifrs-full_OtherNoncurrentFinancialLiabilities", "account_nm": "기타 비유동 금융부채", "thstrm_amount": "500"},
+            {"sj_div": "BS", "account_id": "ifrs-full_CurrentLeaseLiabilities", "account_nm": "유동 리스부채", "thstrm_amount": "1,466"},
+            {"sj_div": "BS", "account_id": "ifrs-full_NoncurrentLeaseLiabilities", "account_nm": "비유동 리스부채", "thstrm_amount": "662"}]
+    d = classify_debt(rows, True)
+    assert d["total"] == 1466 + 662 and d["borrowings_maybe_in_other"] is True and d["lease_maybe_in_other"] is False
+    assert d["approximate"] is True and [i["account"] for i in d["review_items"]] == ["기타 유동 금융부채", "기타 비유동 금융부채"]
+    assert d["review_items"][0]["reason"] == "차입금이 포함되어 있을 수 있음"
+    # '단기금융부채'처럼 기타가 아닌 묶음 계정은 지금처럼 합산
+    d2 = classify_debt([{"sj_div": "BS", "account_id": "-", "account_nm": "단기금융부채", "thstrm_amount": "300"}], True)
+    assert d2["total"] == 300 and d2["items"][0]["type"] == "금융부채(묶음)"
