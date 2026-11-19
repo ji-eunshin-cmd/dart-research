@@ -506,9 +506,10 @@ async def health(_: Request) -> JSONResponse:
         c.warm()
         c.purge()
         ready = c._corps is not None
+        usage = c.limiter.stats()
     except Exception:
-        ready = False
-    return JSONResponse({"ok": True, "company_list_ready": ready})
+        ready, usage = False, None
+    return JSONResponse({"ok": True, "company_list_ready": ready, "dart_usage": usage})
 
 
 app = mcp.streamable_http_app()

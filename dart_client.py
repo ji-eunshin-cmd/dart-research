@@ -11,13 +11,15 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import io
 import json
+import os
 import re
 import time
 import zipfile
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +30,13 @@ BASE = "https://opendart.fss.or.kr/api"
 VIEWER = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo={}"
 CORP_LIST_TTL = 7 * 86400  # 회사 목록(DART 공개 고유번호 목록)은 일주일에 한 번 새로 받음
 RETENTION = 24 * 3600      # 그 밖의 캐시(공시 원문·API 응답)는 24시간 안에 지움
+KST = timezone(timedelta(hours=9))
+
+# 호출 속도 제한 (팀 전체가 키 하나를 같이 쓰므로 서버에서 한꺼번에 몰리지 않게 막음)
+RATE_PER_SEC = float(os.environ.get("DART_RATE_PER_SEC", "5"))     # 초당 평균 호출 수
+RATE_BURST = int(os.environ.get("DART_RATE_BURST", "10"))          # 순간적으로 허용하는 묶음
+MAX_CONCURRENT = int(os.environ.get("DART_MAX_CONCURRENT", "4"))   # 동시에 나가는 요청 수
+DAILY_LIMIT = int(os.environ.get("DART_DAILY_LIMIT", "18000"))     # 하루 상한 (OpenDART 2만 건보다 여유 있게)
 
 STATUS_MSG = {
     "010": "등록되지 않은 DART API 키입니다.",
@@ -43,6 +52,75 @@ STATUS_MSG = {
 
 class DartError(Exception):
     pass
+
+
+def _kst_day() -> str:
+    return datetime.now(KST).strftime("%Y-%m-%d")
+
+
+class RateLimiter:
+    """토큰 버킷 + 동시 요청 수 제한 + 하루 호출 수 집계(KST 기준, 디스크에 보관해 재시작해도 이어짐)."""
+
+    def __init__(self, per_sec: float, burst: int, concurrent: int, daily: int, state: Path | None):
+        self.per_sec, self.burst, self.daily = max(per_sec, 0.1), max(burst, 1), daily
+        self.tokens, self.t = float(self.burst), time.monotonic()
+        self.lock = asyncio.Lock()
+        self.sem = asyncio.Semaphore(max(concurrent, 1))
+        self.state = state
+        self.day, self.count, self.blocked_day = _kst_day(), 0, None
+        if state and state.exists():
+            try:
+                d = json.loads(state.read_text())
+                if d.get("day") == self.day:
+                    self.count, self.blocked_day = int(d.get("count", 0)), d.get("blocked_day")
+            except Exception:
+                pass
+
+    def _roll(self) -> None:
+        today = _kst_day()
+        if today != self.day:
+            self.day, self.count, self.blocked_day = today, 0, None
+
+    def _save(self) -> None:
+        if not self.state:
+            return
+        try:
+            self.state.write_text(json.dumps({"day": self.day, "count": self.count, "blocked_day": self.blocked_day}))
+        except OSError:
+            pass
+
+    def check_quota(self) -> None:
+        self._roll()
+        if self.blocked_day == self.day:
+            raise DartError(STATUS_MSG["020"])
+        if self.count >= self.daily:
+            raise DartError(f"오늘 이 커넥터의 DART 조회 상한({self.daily:,}건)에 도달했습니다. 자정(한국 시간) 이후 다시 시도해 주세요.")
+
+    def mark_exhausted(self) -> None:
+        """OpenDART가 한도 초과(020)를 알려 오면 오늘은 더 부르지 않음."""
+        self._roll()
+        self.blocked_day = self.day
+        self._save()
+
+    async def acquire(self) -> None:
+        self.check_quota()
+        async with self.lock:
+            while True:
+                now = time.monotonic()
+                self.tokens = min(self.burst, self.tokens + (now - self.t) * self.per_sec)
+                self.t = now
+                if self.tokens >= 1:
+                    self.tokens -= 1
+                    break
+                await asyncio.sleep((1 - self.tokens) / self.per_sec)
+            self.count += 1
+            if self.count % 20 == 0:
+                self._save()
+
+    def stats(self) -> dict:
+        self._roll()
+        return {"day": self.day, "calls_today": self.count, "daily_limit": self.daily,
+                "exhausted": self.blocked_day == self.day}
 
 
 def norm_name(s: str) -> str:
@@ -78,6 +156,10 @@ class DartClient:
         self._refresh: asyncio.Task | None = None
         self._json_cache: dict[str, tuple[float, Any]] = {}
         self._last_purge = 0.0
+        self._inflight: dict[str, asyncio.Future] = {}
+        self.jdir = self.cache / "json"
+        self.jdir.mkdir(exist_ok=True)
+        self.limiter = RateLimiter(RATE_PER_SEC, RATE_BURST, MAX_CONCURRENT, DAILY_LIMIT, self.cache / "usage.json")
 
     def purge(self, force: bool = False) -> None:
         """24시간 지난 공시 원문 파일과 메모리 캐시를 지움 (10분마다 한 번 확인)."""
@@ -87,7 +169,7 @@ class DartClient:
         self._last_purge = now
         for k in [k for k, (t, _) in self._json_cache.items() if now - t > RETENTION]:
             self._json_cache.pop(k, None)
-        for p in self.cache.glob("doc_*.zip"):
+        for p in [*self.cache.glob("doc_*.zip"), *self.jdir.glob("*.json")]:
             try:
                 if now - p.stat().st_mtime > RETENTION:
                     p.unlink(missing_ok=True)
@@ -97,8 +179,10 @@ class DartClient:
     # ------------------------------------------------------------ 저수준
     async def _get(self, path: str, **params) -> httpx.Response:
         self.purge()
+        await self.limiter.acquire()
         try:
-            r = await self.http.get(f"{BASE}/{path}", params={"crtfc_key": self.key, **params})
+            async with self.limiter.sem:
+                r = await self.http.get(f"{BASE}/{path}", params={"crtfc_key": self.key, **params})
         except httpx.HTTPError as e:
             raise DartError(f"DART 서버에 연결하지 못했습니다: {type(e).__name__}") from e
         if r.status_code != 200:
@@ -110,15 +194,50 @@ class DartClient:
         hit = self._json_cache.get(ck)
         if hit and time.time() - hit[0] < ttl:
             return hit[1]
+        f = self.jdir / (hashlib.sha256(ck.encode()).hexdigest()[:32] + ".json")
+        try:  # 서버가 재시작돼도 디스크에 남은 응답을 다시 씀 (CACHE_DIR 볼륨이 있을 때)
+            if f.exists() and time.time() - f.stat().st_mtime < min(ttl, RETENTION):
+                data = json.loads(f.read_text(encoding="utf-8"))
+                self._json_cache[ck] = (f.stat().st_mtime, data)
+                return data
+        except (OSError, ValueError):
+            pass
+        return await self._once(ck, lambda: self._fetch_json(ck, f, path, params))
+
+    async def _once(self, key: str, make):
+        """같은 요청이 동시에 여러 번 들어오면 DART에는 한 번만 보내고 결과를 나눠 씀."""
+        fut = self._inflight.get(key)
+        if fut is not None:
+            return await asyncio.shield(fut)
+        fut = asyncio.get_running_loop().create_future()
+        self._inflight[key] = fut
+        try:
+            res = await make()
+            fut.set_result(res)
+            return res
+        except BaseException as e:
+            fut.set_exception(e)
+            fut.exception()  # 기다리는 쪽이 없어도 경고가 나지 않게
+            raise
+        finally:
+            self._inflight.pop(key, None)
+
+    async def _fetch_json(self, ck: str, f: Path, path: str, params: dict) -> dict:
         data = (await self._get(path, **params)).json()
         st = data.get("status")
         if st == "013":  # 조회된 데이터 없음
             data = {"status": "013", "list": []}
         elif st != "000":
+            if st == "020":
+                self.limiter.mark_exhausted()
             raise DartError(STATUS_MSG.get(st, f"DART 오류 {st}: {data.get('message', '')}"))
         self._json_cache[ck] = (time.time(), data)
         if len(self._json_cache) > 2000:
             self._json_cache.pop(next(iter(self._json_cache)))
+        try:
+            f.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
         return data
 
     @staticmethod
@@ -132,6 +251,12 @@ class DartClient:
                 raise DartError("공시 원문이 없습니다.")
             raise DartError(STATUS_MSG.get(st, f"DART 오류 {st}"))
         raise DartError("DART가 예상과 다른 응답을 보냈습니다.")
+
+    def _zip_check(self, content: bytes) -> None:
+        if not content.startswith(b"PK"):
+            if re.search(rb"<status>020</status>|\"status\"\s*:\s*\"020\"", content[:400]):
+                self.limiter.mark_exhausted()
+            self._zip_error(content)
 
     # ------------------------------------------------------------ 회사 목록
     # DART 전체 회사 목록(수 MB)은 해외 서버에서 받는 데 몇 분 걸릴 수 있어서, 사용자를 기다리게 하지 않도록
@@ -272,10 +397,12 @@ class DartClient:
         if f.exists() and time.time() - f.stat().st_mtime <= RETENTION:
             content = f.read_bytes()
         else:
-            content = (await self._get("document.xml", rcept_no=rcept_no)).content
-            if not content.startswith(b"PK"):
-                self._zip_error(content)
-            f.write_bytes(content)
+            async def fetch() -> bytes:
+                data = (await self._get("document.xml", rcept_no=rcept_no)).content
+                self._zip_check(data)
+                f.write_bytes(data)
+                return data
+            content = await self._once("doc:" + rcept_no, fetch)
         with zipfile.ZipFile(io.BytesIO(content)) as z:
             names = sorted(z.namelist(), key=lambda n: (not n.startswith(rcept_no), len(n)))
             return z.read(names[0])  # 본문(접수번호.xml)이 첫 번째
