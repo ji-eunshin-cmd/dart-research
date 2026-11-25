@@ -393,7 +393,7 @@ async def capital_structure(companies: list[str], year: int | None = None, perio
     직전 연간과 LTM(직전 연간 + 당기 누적 − 전기 동기 누적)으로 companies[].metrics에 함께 돌려줍니다.
     period='latest'(기본)면 회사마다 오늘 기준 가장 최근에 공시된 정기보고서(사업·반기·분기)를 골라 쓰고 year는 무시합니다.
     순차입금 = 이자부부채(리스 포함 여부는 include_lease) − 현금및현금성자산.
-    Debt / Equity는 이자부부채 ÷ (평가기준일 주가 × 발행주식총수 + 비지배지분)로 계산하세요(자기주식은 차감하지 않음, 주가는 이 도구에 없음). 금액 단위 원."""
+    Debt / Equity는 이자부부채 ÷ (평가기준일 주가 × (발행주식총수 − 자기주식수) + 비지배지분)로 계산하세요(주가는 이 도구에 없음). 금액 단위 원."""
     if period != "latest":
         if year is None:
             raise ToolError("period를 직접 지정할 때는 year도 넣어 주세요.")
